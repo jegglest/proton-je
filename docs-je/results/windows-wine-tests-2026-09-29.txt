@@ -1,0 +1,18 @@
+Wine conformance tests on Windows 11, 2026-09-29
+Same VM as windows-results-2026-09-29.txt (Windows 11 Enterprise Evaluation 25H2, build 26200.9457, 4 logical processors).
+Binaries: ntdll_test.exe and kernel32_test.exe built from Valve Wine adea6cb with patches 1-3 (the v5 series),
+run by a batch file. Wine (stock Proton Experimental 11.0-20260924) fails the new ntdll:sync test in 2-3 of 4 cases per run;
+the patched v5 ntdll passes all 441 tests (3 runs).
+
+
+Microsoft Windows [Version 10.0.26200.9457]
+=== ntdll_test.exe sync ===
+0a34:sync: 0 tests executed (0 marked as todo, 0 as flaky, 0 failures), 0 skipped.
+1230:sync: 441 tests executed (0 marked as todo, 0 as flaky, 0 failures), 0 skipped.
+=== kernel32_test.exe sync ===
+sync.c:660: memory resource notifications not supported
+sync.c:1926: produced 94, c1 31, c2 31, c3 32
+sync.c:1930: producer sleep 0, consumer sleep 53
+sync.c:2699: number of shared accesses per thread are c1 47, c2 44, c3 45
+sync.c:2700: number of total exclusive accesses is 10
+2158:sync: 19875046 tests executed (0 marked as todo, 0 as flaky, 0 failures), 0 skipped.

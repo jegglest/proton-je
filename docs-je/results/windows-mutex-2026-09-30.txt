@@ -1,0 +1,155 @@
+Mutex abandonment probe on Windows 11, 2026-09-30
+Same VM as windows-results-2026-09-29.txt (Windows 11 Enterprise Evaluation 25H2, build 26200.9457, 4 logical processors).
+Binary: repro/mutex_abandon.exe (mode close = the end of kernel32:sync test_mutex, keep = handle kept open, waitall = the
+wait-all corner case), run by a batch file. On Wine with ntsync: close fails on the stock server and passes with
+patch 4; waitall fails on both (patch 5 fixes it).
+
+
+Microsoft Windows [Version 10.0.26200.9457]
+=== mutex_abandon.exe close 5 ===
+mode: close, 5 iteration(s)
+--- iteration 1
+      0.1 ms  owner:  mutex wait returned 0
+      0.8 ms  main:   owner started, start_event wait 0 (expect 0)
+    105.0 ms  main:   waiter blocked, start_event wait 0x102 (expect 0x102)
+    216.7 ms  main:   mutex handle closed, start_event wait 0x102 (expect 0x102)
+    217.9 ms  main:   TerminateThread(owner) -> 1
+    218.2 ms  main:   owner thread handle wait 0 (expect 0)
+    218.0 ms  waiter: mutex wait returned 0x80 (abandoned)
+    218.9 ms  main:   start_event wait (waiter got the mutex) 0 (expect 0)
+    219.3 ms  waiter: stop_event wait returned 0
+    219.4 ms  main:   waiter thread handle wait 0 (expect 0)
+--- iteration 2
+      0.1 ms  owner:  mutex wait returned 0
+      0.2 ms  main:   owner started, start_event wait 0 (expect 0)
+    108.2 ms  main:   waiter blocked, start_event wait 0x102 (expect 0x102)
+    220.1 ms  main:   mutex handle closed, start_event wait 0x102 (expect 0x102)
+    220.2 ms  main:   TerminateThread(owner) -> 1
+    220.4 ms  main:   owner thread handle wait 0 (expect 0)
+    220.3 ms  waiter: mutex wait returned 0x80 (abandoned)
+    220.6 ms  main:   start_event wait (waiter got the mutex) 0 (expect 0)
+    220.8 ms  waiter: stop_event wait returned 0
+    220.9 ms  main:   waiter thread handle wait 0 (expect 0)
+--- iteration 3
+      0.1 ms  owner:  mutex wait returned 0
+      0.2 ms  main:   owner started, start_event wait 0 (expect 0)
+    110.3 ms  main:   waiter blocked, start_event wait 0x102 (expect 0x102)
+    222.2 ms  main:   mutex handle closed, start_event wait 0x102 (expect 0x102)
+    222.6 ms  main:   TerminateThread(owner) -> 1
+    223.3 ms  waiter: mutex wait returned 0x80 (abandoned)
+    223.3 ms  main:   owner thread handle wait 0 (expect 0)
+    223.5 ms  main:   start_event wait (waiter got the mutex) 0 (expect 0)
+    223.7 ms  waiter: stop_event wait returned 0
+    223.9 ms  main:   waiter thread handle wait 0 (expect 0)
+--- iteration 4
+      0.1 ms  owner:  mutex wait returned 0
+      0.2 ms  main:   owner started, start_event wait 0 (expect 0)
+    109.6 ms  main:   waiter blocked, start_event wait 0x102 (expect 0x102)
+    220.6 ms  main:   mutex handle closed, start_event wait 0x102 (expect 0x102)
+    221.0 ms  main:   TerminateThread(owner) -> 1
+    221.1 ms  waiter: mutex wait returned 0x80 (abandoned)
+    221.2 ms  main:   owner thread handle wait 0 (expect 0)
+    221.4 ms  main:   start_event wait (waiter got the mutex) 0 (expect 0)
+    221.7 ms  waiter: stop_event wait returned 0
+    221.9 ms  main:   waiter thread handle wait 0 (expect 0)
+--- iteration 5
+      0.2 ms  owner:  mutex wait returned 0
+      0.3 ms  main:   owner started, start_event wait 0 (expect 0)
+    110.0 ms  main:   waiter blocked, start_event wait 0x102 (expect 0x102)
+    221.7 ms  main:   mutex handle closed, start_event wait 0x102 (expect 0x102)
+    221.9 ms  main:   TerminateThread(owner) -> 1
+    222.0 ms  main:   owner thread handle wait 0 (expect 0)
+    222.0 ms  waiter: mutex wait returned 0x80 (abandoned)
+    222.4 ms  main:   start_event wait (waiter got the mutex) 0 (expect 0)
+    222.6 ms  waiter: stop_event wait returned 0
+    222.9 ms  main:   waiter thread handle wait 0 (expect 0)
+0 failed step(s)
+=== mutex_abandon.exe keep 5 ===
+mode: keep, 5 iteration(s)
+--- iteration 1
+      0.1 ms  owner:  mutex wait returned 0
+      0.2 ms  main:   owner started, start_event wait 0 (expect 0)
+    103.8 ms  main:   waiter blocked, start_event wait 0x102 (expect 0x102)
+    104.1 ms  main:   TerminateThread(owner) -> 1
+    104.3 ms  main:   owner thread handle wait 0 (expect 0)
+    104.2 ms  waiter: mutex wait returned 0x80 (abandoned)
+    104.6 ms  main:   start_event wait (waiter got the mutex) 0 (expect 0)
+    104.8 ms  waiter: stop_event wait returned 0
+    104.9 ms  main:   waiter thread handle wait 0 (expect 0)
+--- iteration 2
+      0.1 ms  owner:  mutex wait returned 0
+      0.2 ms  main:   owner started, start_event wait 0 (expect 0)
+    110.5 ms  main:   waiter blocked, start_event wait 0x102 (expect 0x102)
+    110.8 ms  main:   TerminateThread(owner) -> 1
+    111.1 ms  main:   owner thread handle wait 0 (expect 0)
+    110.9 ms  waiter: mutex wait returned 0x80 (abandoned)
+    111.5 ms  main:   start_event wait (waiter got the mutex) 0 (expect 0)
+    111.7 ms  waiter: stop_event wait returned 0
+    111.8 ms  main:   waiter thread handle wait 0 (expect 0)
+--- iteration 3
+      0.1 ms  owner:  mutex wait returned 0
+      0.2 ms  main:   owner started, start_event wait 0 (expect 0)
+    109.6 ms  main:   waiter blocked, start_event wait 0x102 (expect 0x102)
+    109.9 ms  main:   TerminateThread(owner) -> 1
+    110.1 ms  main:   owner thread handle wait 0 (expect 0)
+    109.9 ms  waiter: mutex wait returned 0x80 (abandoned)
+    110.5 ms  main:   start_event wait (waiter got the mutex) 0 (expect 0)
+    110.6 ms  waiter: stop_event wait returned 0
+    110.8 ms  main:   waiter thread handle wait 0 (expect 0)
+--- iteration 4
+      0.1 ms  owner:  mutex wait returned 0
+      0.2 ms  main:   owner started, start_event wait 0 (expect 0)
+    109.5 ms  main:   waiter blocked, start_event wait 0x102 (expect 0x102)
+    109.6 ms  main:   TerminateThread(owner) -> 1
+    109.7 ms  main:   owner thread handle wait 0 (expect 0)
+    109.7 ms  waiter: mutex wait returned 0x80 (abandoned)
+    110.0 ms  main:   start_event wait (waiter got the mutex) 0 (expect 0)
+    110.2 ms  waiter: stop_event wait returned 0
+    110.3 ms  main:   waiter thread handle wait 0 (expect 0)
+--- iteration 5
+      0.1 ms  owner:  mutex wait returned 0
+      0.2 ms  main:   owner started, start_event wait 0 (expect 0)
+    110.1 ms  main:   waiter blocked, start_event wait 0x102 (expect 0x102)
+    110.4 ms  main:   TerminateThread(owner) -> 1
+    110.5 ms  waiter: mutex wait returned 0x80 (abandoned)
+    110.6 ms  main:   owner thread handle wait 0 (expect 0)
+    111.0 ms  main:   start_event wait (waiter got the mutex) 0 (expect 0)
+    111.2 ms  waiter: stop_event wait returned 0
+    111.3 ms  main:   waiter thread handle wait 0 (expect 0)
+0 failed step(s)
+=== mutex_abandon.exe waitall 3 ===
+mode: waitall, 3 iteration(s)
+--- iteration 1
+    103.9 ms  main:   A and B blocked, start_event wait 0x102 (expect 0x102)
+    214.9 ms  main:   mutex handle closed, start_event wait 0x102 (expect 0x102)
+    215.1 ms  A:      wait-all on mutex + event A returned 0
+    215.4 ms  main:   event A set, start_event wait (A owns the mutex) 0 (expect 0)
+    215.5 ms  main:   TerminateThread(A) -> 1
+    215.7 ms  main:   A thread handle wait 0 (expect 0)
+    215.8 ms  B:      wait-all on mutex + event B returned 0x80 (abandoned)
+    216.1 ms  main:   event B set, start_event wait (B got the abandoned mutex) 0 (expect 0)
+    216.3 ms  B:      stop_event wait returned 0
+    216.5 ms  main:   B thread handle wait 0 (expect 0)
+--- iteration 2
+    109.5 ms  main:   A and B blocked, start_event wait 0x102 (expect 0x102)
+    220.6 ms  main:   mutex handle closed, start_event wait 0x102 (expect 0x102)
+    220.8 ms  A:      wait-all on mutex + event A returned 0
+    220.9 ms  main:   event A set, start_event wait (A owns the mutex) 0 (expect 0)
+    221.1 ms  main:   TerminateThread(A) -> 1
+    221.3 ms  main:   A thread handle wait 0 (expect 0)
+    221.4 ms  B:      wait-all on mutex + event B returned 0x80 (abandoned)
+    221.6 ms  main:   event B set, start_event wait (B got the abandoned mutex) 0 (expect 0)
+    221.7 ms  B:      stop_event wait returned 0
+    221.9 ms  main:   B thread handle wait 0 (expect 0)
+--- iteration 3
+    109.4 ms  main:   A and B blocked, start_event wait 0x102 (expect 0x102)
+    220.6 ms  main:   mutex handle closed, start_event wait 0x102 (expect 0x102)
+    220.9 ms  A:      wait-all on mutex + event A returned 0
+    221.2 ms  main:   event A set, start_event wait (A owns the mutex) 0 (expect 0)
+    221.4 ms  main:   TerminateThread(A) -> 1
+    221.5 ms  main:   A thread handle wait 0 (expect 0)
+    221.7 ms  B:      wait-all on mutex + event B returned 0x80 (abandoned)
+    222.1 ms  main:   event B set, start_event wait (B got the abandoned mutex) 0 (expect 0)
+    222.4 ms  B:      stop_event wait returned 0
+    222.7 ms  main:   B thread handle wait 0 (expect 0)
+0 failed step(s)
