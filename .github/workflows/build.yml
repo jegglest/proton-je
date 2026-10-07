@@ -1,0 +1,133 @@
+name: Build
+
+# Builds Proton from this tree the way Valve does (make redist in the Proton SDK container) and,
+# for a tag named proton-je-*, publishes the tarball as a GitHub release.
+
+on:
+  push:
+    tags:
+      - 'proton-je-*'
+  workflow_dispatch:
+    inputs:
+      build_name:
+        description: 'Build name, also the tool name Steam shows (default: proton-je-dev-<commit>)'
+        required: false
+        default: ''
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-${{ github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Free disk space on the runner
+        uses: endersonmenezes/free-disk-space@v3
+        with:
+          remove_android: true
+          remove_dotnet: true
+          remove_haskell: true
+          remove_tool_cache: true
+          remove_swap: true
+          remove_packages: >-
+            azure-cli google-cloud-cli microsoft-edge-stable google-chrome-stable firefox
+            postgresql* temurin-* *llvm* mysql* dotnet-sdk-*
+          remove_packages_one_command: false
+          remove_folders: >-
+            /usr/share/swift /usr/share/miniconda /usr/share/az* /usr/local/lib/node_modules
+            /usr/local/share/chromium /usr/local/share/powershell /usr/local/julia
+            /usr/local/aws-cli /usr/local/aws-sam-cli /usr/share/gradle
+          testing: false
+
+      - name: Check out
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+          submodules: false
+
+      - name: Pick the build name
+        id: name
+        env:
+          INPUT_BUILD_NAME: ${{ inputs.build_name }}
+        run: |
+          if [ "${{ github.ref_type }}" = tag ]; then
+              name="${{ github.ref_name }}"
+          elif [ -n "$INPUT_BUILD_NAME" ]; then
+              name="$INPUT_BUILD_NAME"
+          else
+              name="proton-je-dev-$(git rev-parse --short HEAD)"
+          fi
+          # Proton writes `git describe --tags` into the tool's version file; make that the build name.
+          git tag --force "$name"
+          echo "name=$name" >> "$GITHUB_OUTPUT"
+          echo "Building $name"
+
+      - name: Fetch the submodules
+        run: git submodule update --init --filter=tree:0 --recursive
+
+      - name: Configure
+        env:
+          NAME: ${{ steps.name.outputs.name }}
+        run: |
+          mkdir build
+          cd build
+          ../configure.sh --build-name="$NAME" --container-engine=docker --enable-ccache
+
+      - name: Restore the compiler cache
+        id: ccache-restore
+        uses: actions/cache/restore@v5
+        with:
+          path: ~/.ccache
+          key: ccache-${{ hashFiles('Makefile.in') }}-${{ github.run_id }}
+          restore-keys: |
+            ccache-${{ hashFiles('Makefile.in') }}-
+            ccache-
+
+      - name: Build
+        working-directory: build
+        run: make redist
+
+      - name: Save the compiler cache
+        if: always()
+        uses: actions/cache/save@v5
+        with:
+          path: ~/.ccache
+          key: ${{ steps.ccache-restore.outputs.cache-primary-key }}
+
+      - name: Package
+        working-directory: build
+        env:
+          NAME: ${{ steps.name.outputs.name }}
+        run: |
+          mv redist "$NAME"
+          cat "$NAME/version"
+          tar -I 'xz -T0' -cf "$NAME.tar.xz" "$NAME"
+          sha512sum "$NAME.tar.xz" > "$NAME.sha512sum"
+          ls -l "$NAME.tar.xz" "$NAME.sha512sum"
+
+      - name: Upload the build as a workflow artifact
+        uses: actions/upload-artifact@v5
+        with:
+          name: ${{ steps.name.outputs.name }}
+          path: |
+            build/${{ steps.name.outputs.name }}.tar.xz
+            build/${{ steps.name.outputs.name }}.sha512sum
+          if-no-files-found: error
+          compression-level: 0
+
+      - name: Publish the release
+        if: github.ref_type == 'tag'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NAME: ${{ steps.name.outputs.name }}
+        run: |
+          .github/release-notes.sh "$NAME" > build/notes.md
+          cat build/notes.md
+          gh release create "$NAME" --verify-tag --title "$NAME" --notes-file build/notes.md \
+              "build/$NAME.tar.xz" "build/$NAME.sha512sum"
