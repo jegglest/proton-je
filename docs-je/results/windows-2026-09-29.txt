@@ -1,0 +1,25 @@
+Windows 11 comparison run, 2026-09-29
+VM: win11-sync (a QEMU/KVM VM): Windows 11 Enterprise Evaluation 25H2, build 26200.9457, QEMU 11.0.1/KVM on the Ryzen 7 9800X3D,
+8 vCPUs configured (Windows reports 4 logical processors), 8 GB. Programs: repro/raced_wake_probe.exe and repro/stale_wake.exe, run by the same commands as in repro/README.md.
+Wine reference (2026-09-28, stock Proton Experimental 11.0-20260924, same binaries): raced_wake_probe 41 stale alerts and 59 early returns in 8x20,000 waits;
+stale_wake poll/both/timed: 69,195 of 529,155, 24,088 of 137,275, 45 of 139,069 returned while still pending.
+
+
+Microsoft Windows [Version 10.0.26200.9457]
+=== raced_wake_probe.exe 20000 3 ===
+OS 10.0 build 26200, 4 processors
+timeout   0 ns, wake single, probe:  20000 waits ( 19961 woken,     39 timed out, 0 other), 0 stale alerts
+timeout   0 ns, wake single, early:    189 waits (   160 woken,     29 timed out, 0 other), 0 early returns on another address
+timeout   0 ns, wake all   , probe:  20000 waits ( 19953 woken,     47 timed out, 0 other), 0 stale alerts
+timeout   0 ns, wake all   , early:    189 waits (   183 woken,      6 timed out, 0 other), 0 early returns on another address
+timeout 100 ns, wake single, probe:  20000 waits ( 20000 woken,      0 timed out, 0 other), 0 stale alerts
+timeout 100 ns, wake single, early:    190 waits (   190 woken,      0 timed out, 0 other), 0 early returns on another address
+timeout 100 ns, wake all   , probe:  20000 waits ( 20000 woken,      0 timed out, 0 other), 0 stale alerts
+timeout 100 ns, wake all   , early:    189 waits (   189 woken,      0 timed out, 0 other), 0 early returns on another address
+total: 0 stale alerts, 0 early returns
+=== stale_wake.exe 15 8 poll ===
+poll: 15 s, 8 workers: 100097 future waits, 0 returned while still pending (spurious)
+=== stale_wake.exe 15 8 both ===
+both: 15 s, 8 workers: 26073 future waits, 0 returned while still pending (spurious)
+=== stale_wake.exe 15 8 timed ===
+timed: 15 s, 8 workers: 85325 future waits, 0 returned while still pending (spurious)
