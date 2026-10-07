@@ -1,3 +1,99 @@
+Proton-JE
+=========
+
+Valve's [Proton Experimental](https://github.com/ValveSoftware/Proton/tree/experimental_11.0) plus the patches I
+am trying to get into upstream Wine, built the way Valve builds Proton, so that other people can test the fixes
+before they land. Nothing else is changed: no wine-staging, no other custom patches.
+
+| | |
+|---|---|
+| Base | Proton `experimental_11.0` commit [`70b7e109`](https://github.com/ValveSoftware/Proton/commit/70b7e109e8fc0783a509805f3d1bc090b55dac3f) (Steam's `experimental-11.0-20261001`) with Wine [`6d211aab`](https://github.com/ValveSoftware/wine/commit/6d211aabd1d325c9990a5fd7a81b9db37caae12d) |
+| Patches | the five commits on branch [`je-11.0` of `jegglest/wine`](https://github.com/jegglest/wine/commits/je-11.0), Valve's Wine for this Experimental plus the patches; the `wine/` submodule points at it |
+| Builds | [Releases](https://github.com/jegglest/proton-je/releases): `proton-je-<Proton version>-<n>.tar.xz`, built by [GitHub Actions](.github/workflows/build.yml) from the tagged commit |
+| Write-ups | [`docs-je/`](docs-je): one file per issue, with the cause, the fix and the test results on Linux and on Windows |
+| Discussion | Proton issue [#8072](https://github.com/ValveSoftware/Proton/issues/8072), Wine bugs [60397](https://bugs.winehq.org/show_bug.cgi?id=60397) and [60417](https://bugs.winehq.org/show_bug.cgi?id=60417) |
+
+Current patches
+---------------
+
+Two bugs in Wine's synchronization primitives, found while tracking down the mid-mission crash of Warhammer
+40,000: Space Marine 2 under Proton ([#8072](https://github.com/ValveSoftware/Proton/issues/8072)). The patches
+are the five commits of the Wine branch, numbered 1 to 5 below in that order. The short version follows; [`docs-je/`](docs-je) has the full write-up of each, with the test programs and the Windows
+comparison.
+
+**Stale thread alerts from `RtlWaitOnAddress()`** (patches 1–3, Wine bug
+[60397](https://bugs.winehq.org/show_bug.cgi?id=60397)). `RtlWakeAddressSingle()` and `RtlWakeAddressAll()`
+take a waiter off the list under a lock but alert its thread only after unlocking. A waiter whose timeout
+expires in that window returns `STATUS_TIMEOUT` and leaves the alert pending, so the thread's next wait returns
+immediately, whatever it is waiting for: the same mechanism is behind `SleepConditionVariableCS()`, SRW locks
+and critical sections. Windows consumes the wake instead (measured on Windows 11). Patch 2 makes the waiter take
+the in-flight alert, as Windows does; patch 1 fixes a use-after-return in the wakers, which kept touching the
+waiter's stack entry after releasing it; patch 3 adds a conformance test that fails on stock Wine and passes on
+Windows. In Space Marine 2 a spurious condition-variable wake lets a file-loader callback write into a stack
+frame that is already gone, which is the `EXCEPTION_ACCESS_VIOLATION` in `resFILE_LOADER` reported in #8072.
+The crash became frequent with Linux 7.2, which changed the timing, but the Wine bug is kernel-independent.
+
+**ntsync mutexes that are never abandoned** (patches 4–5, Wine bug
+[60417](https://bugs.winehq.org/show_bug.cgi?id=60417)). With ntsync, a mutex whose handles are all closed
+while a thread still owns it, or is still using it, drops out of the server's bookkeeping, so when that thread
+dies nobody waiting on the mutex gets `WAIT_ABANDONED`: they wait forever. Windows abandons it. Patch 4 keeps
+such mutexes reachable until they are released or their owner dies; patch 5 covers a mutex closed while another
+thread of the same process is still using it, which needs a new server request (the server protocol version is
+bumped, so every unix-side library must come from the same tree, as it does in a full build like this one).
+These were the two long-standing `kernel32:sync` test failures under ntsync.
+
+Results so far: on my machine the stock build crashed regularly in Space Marine 2; with the patched `ntdll` and
+`wineserver` it has not crashed since 2026-09-26 ([details](docs-je/stale-thread-alert.md#in-the-game)). Several
+people in that thread report the same with Jpokul's prototype build, which carries the same patches. Wine's
+`ntdll:sync` and `kernel32:sync` test suites pass with the patches, and so does the new test on Windows 11.
+
+The patches were written with the help of an LLM (Claude), which Wine's contribution policy excludes from merge
+requests, so upstream has them as bug reports with the analysis and the patches attached.
+
+Installing a build
+------------------
+
+Download `proton-je-<version>.tar.xz` from [Releases](https://github.com/jegglest/proton-je/releases) and extract it
+into `~/.steam/root/compatibilitytools.d/` (for Flatpak Steam,
+`~/.var/app/com.valvesoftware.Steam/data/Steam/compatibilitytools.d/`):
+
+```bash
+sha512sum -c proton-je-<version>.sha512sum
+tar -xf proton-je-<version>.tar.xz -C ~/.steam/root/compatibilitytools.d/
+```
+
+Restart Steam, then pick `proton-je-<version>` under the game's Properties > Compatibility. Tools such as
+ProtonPlus or ProtonUp-Qt can do the same once they list this repository.
+
+Building it yourself
+--------------------
+
+The build needs Podman or Docker, about 40 GB of disk and an hour or two, and otherwise works like upstream's
+(see "Building Proton" below):
+
+```bash
+git clone --branch je-11.0 https://github.com/jegglest/proton-je
+cd proton-je
+git submodule update --init --recursive --filter=tree:0
+mkdir build && cd build
+../configure.sh --build-name=proton-je-local --enable-ccache
+make redist          # the tool ends up in build/redist/
+```
+
+How this repository is laid out
+-------------------------------
+
+`je-11.0` is `experimental_11.0` plus a few commits: the `wine` submodule pointed at the `je-11.0` branch of
+[`jegglest/wine`](https://github.com/jegglest/wine) (the Wine commit this Experimental uses plus the patches as
+commits), the write-ups in `docs-je/`, the build workflow and this README. When Valve updates Experimental, the
+Wine branch is rebased onto the Wine commit the new head uses and this branch onto the new head, and both are
+force-pushed; every release stays reachable through its tag, which also pins the Wine commit it was built from.
+Releases are tags named `proton-je-<Proton version>-<n>`, where `n` counts the builds on the same base.
+
+Upstream's README follows.
+
+---
+
 Introduction
 ------------
 
