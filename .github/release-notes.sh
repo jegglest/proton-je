@@ -18,7 +18,7 @@ steam_note=""
 echo "\`$name\` is [Proton Experimental](https://github.com/ValveSoftware/Proton/tree/experimental_11.0)$steam_note: Proton commit [\`${base:0:10}\`](https://github.com/ValveSoftware/Proton/commit/$base) with Wine [\`${wine_base:0:10}\`](https://github.com/ValveSoftware/wine/commit/$wine_base), built from Valve's sources in Valve's SDK container, with these commits on top of that Wine ([jegglest/wine](https://github.com/jegglest/wine/compare/$wine_base...$wine_head)) and, apart from the \`proton\` script's handling of the FSR 4 DLL, nothing else changed:"
 echo
 for commit in $(git -C wine rev-list --reverse "$wine_base..$wine_head"); do
-    echo "- $(git -C wine log -1 --format=%s "$commit") ([\`${commit:0:10}\`](https://github.com/jegglest/wine/commit/$commit))"
+    echo "- $(git -C wine log -1 --format=%s "$commit") ([\`${commit:0:10}\`](https://github.com/jegglest/wine/commit/$commit)), by $(git -C wine log -1 --format=%an "$commit")"
 done
 cat <<NOTES
 
