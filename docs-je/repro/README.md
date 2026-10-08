@@ -51,13 +51,13 @@ the server-side mutexes are used and the bug does not occur.
 script sets up, so run it the way Steam would, with a scratch compatdata directory:
 
 ```bash
-STEAM_COMPAT_DATA_PATH=/tmp/je-probe STEAM_COMPAT_CLIENT_INSTALL_PATH=~/.local/share/Steam \
+ENABLE_LAYER_MESA_ANTI_LAG=1 STEAM_COMPAT_DATA_PATH=/tmp/je-probe STEAM_COMPAT_CLIENT_INSTALL_PATH=~/.local/share/Steam \
     STEAM_COMPAT_LIBRARY_PATHS=~/.local/share/Steam/steamapps SteamGameId=0 PROTON_LOG=+amdxc PROTON_LOG_DIR=$PWD \
     $T/proton run amd_probe.exe --ffx
 ```
 
-Expected on an RDNA4 card with the Mesa anti-lag layer installed: `IAmdExtAntiLagApi: 0`, three `S_OK`
+Expected on an RDNA4 card with the Mesa anti-lag layer installed and enabled as above: `IAmdExtAntiLagApi: 0`, three `S_OK`
 `UpdateAntiLagState()` lines, `IAmdExtD3DDevice8: 0` with one 16x16x16 FP8 (type 11) wave-matrix entry, and
 `CheckSupport(WaveMatrix)` and `CheckSupport(Float8Conversion)` returning 0. Without the Proton-EM `amdxc64`
-the factory interfaces are stubs and `IAmdExtD3DDevice8` is refused; without the anti-lag layer the Anti-Lag
-interface is refused.
+the factory interfaces are stubs and `IAmdExtD3DDevice8` is refused; without `ENABLE_LAYER_MESA_ANTI_LAG=1` the
+Anti-Lag interface is refused.
