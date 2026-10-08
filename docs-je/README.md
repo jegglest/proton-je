@@ -32,6 +32,7 @@ only the `proton` script change and the write-up are mine, again with the LLM's 
 ## Adding an issue
 
 Add the commits to the `je-11.0` branch of [`jegglest/wine`](https://github.com/jegglest/wine) (or to this
-repository for a change outside Wine) and point the `wine/` submodule at the new head, then a write-up here with
-the same sections as the existing ones, its reproducer under [`repro/`](repro) if it has one, and a row in the
-table above and in the top-level [README](../README.md).
+repository for a change outside Wine), keeping the original author and, for someone else's commits, ending each
+message with a line that names them and where the commits come from, as the FSR 4 commits do. Point the `wine/`
+submodule at the new head, then add a write-up here with the same sections as the existing ones, its reproducer
+under [`repro/`](repro) if it has one, and a row in the table above and in the top-level [README](../README.md).
