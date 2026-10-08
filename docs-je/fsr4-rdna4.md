@@ -134,9 +134,10 @@ Valve's stub cannot give them. The probe's own `UpdateFfxApiProvider()` call pas
 
 ### In the game
 
-Pending: Helldivers 2 on the test machine, which names the FSR version in its video settings and ships the FSR 4
-SDK (`amd_fidelityfx_upscaler_dx12.dll`), so it takes the same driver interfaces for its native FSR 4 as the
-upgrade path does.
+Helldivers 2 on the test machine (RX 9070 XT, RADV, Mesa 26.2.4), which names the FSR version in its video
+settings and ships the FSR 4 SDK (`amd_fidelityfx_upscaler_dx12.dll`), so it takes the same driver interfaces for
+its native FSR 4 as the upgrade path does: with the dev build of commit `9910b516` the game offers FSR 4, where
+Proton Experimental and the previous release offer FSR 3 only (2026-10-08).
 
 ## Upstream status
 

@@ -76,8 +76,8 @@ alone. RADV must expose `VK_KHR_cooperative_matrix`, and `VK_EXT_shader_float8` 
 (`vulkaninfo | grep -E 'cooperative_matrix|shader_float8'`); vkd3d-proton as pinned by Valve already supports the
 AMD wave-matrix intrinsics. Proton Experimental must be installed in Steam, which it is by default, or the DLL
 placed in the tool's `contrib/` directory. On an RX 9070 XT the driver queries the FSR 4 DLL makes now come back
-with FP8 wave-matrix support, where Valve's stub refuses them; the [write-up](docs-je/fsr4-rdna4.md) has the
-measurements, and the in-game results as they come in.
+with FP8 wave-matrix support, where Valve's stub refuses them, and Helldivers 2 offers FSR 4 where it offered
+FSR 3 before; the [write-up](docs-je/fsr4-rdna4.md) has the measurements.
 
 **AMD Anti-Lag 2** (nothing carried here, one variable to set). Games that integrate AMD's Anti-Lag 2 SDK,
 Helldivers 2 among them, ask `amdxc64` for its `IAmdExtAntiLagApi` interface, which vkd3d-proton implements on
