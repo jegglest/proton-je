@@ -2,24 +2,26 @@ Proton-JE
 =========
 
 Valve's [Proton Experimental](https://github.com/ValveSoftware/Proton/tree/experimental_11.0) plus the patches I
-am trying to get into upstream Wine, built the way Valve builds Proton, so that other people can test the fixes
+am trying to get into upstream Wine, and the FSR 4 driver-side work from Proton-EM, as shipped by Proton-GE, that
+makes FSR 4 work on RDNA4 cards, built the way Valve builds Proton, so that other people can test the fixes
 before they land. Nothing else is changed: no wine-staging, no other custom patches.
 
 | | |
 |---|---|
 | Base | Proton `experimental_11.0` commit [`70b7e109`](https://github.com/ValveSoftware/Proton/commit/70b7e109e8fc0783a509805f3d1bc090b55dac3f) (Steam's `experimental-11.0-20261001`) with Wine [`6d211aab`](https://github.com/ValveSoftware/wine/commit/6d211aabd1d325c9990a5fd7a81b9db37caae12d) |
-| Patches | the five commits on branch [`je-11.0` of `jegglest/wine`](https://github.com/jegglest/wine/commits/je-11.0), Valve's Wine for this Experimental plus the patches; the `wine/` submodule points at it |
+| Patches | the commits on branch [`je-11.0` of `jegglest/wine`](https://github.com/jegglest/wine/commits/je-11.0): Valve's Wine for this Experimental, my five synchronization fixes and the 26 FSR 4 commits by Etaash Mathamsetty; the `wine/` submodule points at it |
 | Builds | [Releases](https://github.com/jegglest/proton-je/releases): `proton-je-<Proton version>-<n>.tar.xz`, built by [GitHub Actions](.github/workflows/build.yml) from the tagged commit |
 | Write-ups | [`docs-je/`](docs-je): one file per issue, with the cause, the fix and the test results on Linux and on Windows |
-| Discussion | Proton issue [#8072](https://github.com/ValveSoftware/Proton/issues/8072), Wine bugs [60397](https://bugs.winehq.org/show_bug.cgi?id=60397) and [60417](https://bugs.winehq.org/show_bug.cgi?id=60417) |
+| Discussion | Proton issue [#8072](https://github.com/ValveSoftware/Proton/issues/8072), Wine bugs [60397](https://bugs.winehq.org/show_bug.cgi?id=60397) and [60417](https://bugs.winehq.org/show_bug.cgi?id=60417); Proton issue [#9908](https://github.com/ValveSoftware/Proton/issues/9908) for FSR 4 |
 
 Current patches
 ---------------
 
-Two bugs in Wine's synchronization primitives, found while tracking down the mid-mission crash of Warhammer
-40,000: Space Marine 2 under Proton ([#8072](https://github.com/ValveSoftware/Proton/issues/8072)). The patches
-are the five commits of the Wine branch, numbered 1 to 5 below in that order. The short version follows; [`docs-je/`](docs-je) has the full write-up of each, with the test programs and the Windows
-comparison.
+The Wine branch carries two groups of commits: my fixes for two bugs in Wine's synchronization primitives
+(commits 1 to 5), found while tracking down the mid-mission crash of Warhammer 40,000: Space Marine 2 under Proton
+([#8072](https://github.com/ValveSoftware/Proton/issues/8072)), and the FSR 4 driver side from Proton-EM (commits
+6 to 31). The short version follows; [`docs-je/`](docs-je) has the full write-up of each, with the test programs
+and the Windows comparison.
 
 **Stale thread alerts from `RtlWaitOnAddress()`** (patches 1–3, Wine bug
 [60397](https://bugs.winehq.org/show_bug.cgi?id=60397)). `RtlWakeAddressSingle()` and `RtlWakeAddressAll()`
@@ -47,8 +49,34 @@ Results so far: on my machine the stock build crashed regularly in Space Marine 
 people in that thread report the same with Jpokul's prototype build, which carries the same patches. Wine's
 `ntdll:sync` and `kernel32:sync` test suites pass with the patches, and so does the new test on Windows 11.
 
-The patches were written with the help of an LLM (Claude), which Wine's contribution policy excludes from merge
-requests, so upstream has them as bug reports with the analysis and the patches attached.
+The synchronization patches were written with the help of an LLM (Claude), which Wine's contribution policy
+excludes from merge requests, so upstream has them as bug reports with the analysis and the patches attached.
+
+**FSR 4 on RDNA4 GPUs** (commits 6–31, Proton issue
+[#9908](https://github.com/ValveSoftware/Proton/issues/9908)). A game with FSR 3.1 asks the AMD driver, through
+`amdxc64.dll`, to swap in FSR 4. Proton Experimental has a minimal `amdxc64` in Wine and, in Steam's own build,
+AMD's FSR 4 DLL (`contrib/amdxcffx64.dll`, FSR 4.1.1). The stub answers none of the questions the DLL asks before
+choosing a model (the adapter family from `D3DKMTQueryAdapterInfo`, the wave-matrix properties, which shader
+intrinsics work), so on RDNA4 the DLL announces FSR 4 but renders the FSR 3 model, and Valve limited the automatic
+upgrade to RDNA3 to avoid that confusion (see the issue). Etaash Mathamsetty's
+[Proton-EM](https://github.com/Etaash-mathamsetty/Proton) implements the driver side: `amdxc64` on AMD's SDK
+interfaces, the `IAmdExtD3DDevice8` and shader-intrinsics queries answered from vkd3d-proton's wave-matrix
+support, FSR 4.1.1's `UpdateFfxApiProviderEx`, the ML frame-generation upgrade, and `win32u` reporting the Navi4x
+(FP8) or Navi3x (INT8) adapter family. Proton-GE ships this as patches in its EM-11 set; commits 6 to 31 are those
+26 commits (the amdxc, win32u and d3dkmt patches of
+[proton-ge-custom at `dceec5e940af`](https://github.com/GloriousEggroll/proton-ge-custom/tree/dceec5e940afd299f40304f24116b141d0798a72/patches/wine-hotfixes/wine-wayland)),
+applied unchanged with their authorship. A build from source has no `contrib/`, so the `proton` script takes
+Valve's `amdxcffx64.dll` from Steam's Proton Experimental or Proton Hotfix install, the same FSR 4.1.1 file
+Proton-GE downloads, and copies it into the prefix as Valve's script does.
+
+With the DLL available, the upgrade is automatic on discrete AMD GPUs from RDNA2 on, as in Proton-EM and
+Proton-GE. `PROTON_FSR4_UPGRADE=0` turns it off, `PROTON_FSR4_UPGRADE=1` forces it on hardware it skips, such as
+integrated GPUs, `PROTON_FSR4_INDICATOR=1` shows AMD's FSR watermark and `MLFG_UPGRADE=0` leaves frame generation
+alone. RADV must expose `VK_KHR_cooperative_matrix`, and `VK_EXT_shader_float8` for the FP8 model on RDNA4
+(`vulkaninfo | grep -E 'cooperative_matrix|shader_float8'`); vkd3d-proton as pinned by Valve already supports the
+AMD wave-matrix intrinsics. Proton Experimental must be installed in Steam, which it is by default, or the DLL
+placed in the tool's `contrib/` directory. The [write-up](docs-je/fsr4-rdna4.md) has the details and the test
+results.
 
 Installing a build
 ------------------
