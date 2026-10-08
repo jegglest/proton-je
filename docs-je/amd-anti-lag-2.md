@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Patches | none in Wine; the `proton` script sets `ENABLE_LAYER_MESA_ANTI_LAG=1` (`PROTON_AMD_ANTI_LAG=0` turns it off) |
+| Patches | none; put `ENABLE_LAYER_MESA_ANTI_LAG=1` in the game's launch options (documented here, not carried) |
 | Upstream | Mesa ships `VK_AMD_anti_lag` as the layer `VK_LAYER_MESA_anti_lag`, off unless asked for; vkd3d-proton implements the Anti-Lag 2 interface on it; nothing to report |
 | Seen as | games with AMD Anti-Lag 2 (Helldivers 2, Counter-Strike 2's Windows build, Ghost of Tsushima and others) offer the setting under Proton but it has no effect |
 | Affects | every Proton on every Mesa with the layer (Mesa 25.1 and later), unless the environment enables the layer |
@@ -17,7 +17,8 @@ AMD's Anti-Lag 2 SDK is a header the game compiles in. It finds the driver's `am
 device, and vkd3d-proton implements the interface with `VK_AMD_anti_lag`. The one missing piece is the Vulkan
 extension: RADV does not expose it, Mesa provides it through an implicit layer that is inactive until
 `ENABLE_LAYER_MESA_ANTI_LAG=1` is set. Without it vkd3d-proton returns `E_NOINTERFACE` and the game's setting is
-dead. Proton-JE sets the variable; nothing else is needed.
+dead. Setting the variable is all it takes, and it is the same for every Proton, so this repository documents it
+rather than carrying a change.
 
 ## Symptom
 
@@ -52,13 +53,13 @@ counterpart; for Direct3D 9 to 11 games DXVK's `dxvk.latencySleep` option is the
 The AMD driver's own `amdxc64.dll` implements the interface, so the toggle works in every game that integrates
 the SDK, on every GPU the driver supports.
 
-## The fix
+## What to do
 
-The `proton` script adds `amdantilag` to the compat config by default and sets `ENABLE_LAYER_MESA_ANTI_LAG=1`
-for the game (with `setdefault`, so a value set in the launch options wins). `PROTON_AMD_ANTI_LAG=0` removes the
-option. The layer only makes the extension available; whether anti-lag runs stays with the game's setting, and
+Put `ENABLE_LAYER_MESA_ANTI_LAG=1 %command%` in the game's launch options, or export the variable for the Steam
+process. The layer only makes the extension available; whether anti-lag runs stays with the game's setting, and
 nothing changes for games without the SDK, for DXVK, or on other GPUs (vkd3d-proton loads `amdxc64` on AMD
-only).
+only). Mesa keeps the layer opt-in on purpose, and the switch works the same under every Proton, which is why
+this build does not set it for you.
 
 ## Testing
 
@@ -71,7 +72,6 @@ Proton-JE release built before this change (`proton-je-11.0-20261001-1`, Valve's
 |---|---|---|---|
 | nothing set | absent, `antiLag` false | `0x80004002` (`E_NOINTERFACE`) | not reachable |
 | `ENABLE_LAYER_MESA_ANTI_LAG=1` | listed, `antiLag` true | `S_OK` | `S_OK`, `S_OK`, `S_OK` |
-| the new `proton` script, nothing set | listed, `antiLag` true | `S_OK` | `S_OK`, `S_OK`, `S_OK` |
 
 The in-game check is Helldivers 2's Anti-Lag 2 setting, which the game greys out when the interface is missing.
 
@@ -80,8 +80,8 @@ The in-game check is Helldivers 2's Anti-Lag 2 setting, which the game greys out
 Nothing to report: Mesa keeps the layer opt-in on purpose (vkd3d-proton's source notes that anti-lag "will not
 be enabled by default until it's confirmed to be rock solid"), vkd3d-proton has implemented the interface since
 mid-2025 ([#2526](https://github.com/HansKristian-Work/vkd3d-proton/pull/2526), simplified in
-[#3083](https://github.com/HansKristian-Work/vkd3d-proton/pull/3083)), and Valve's Proton does not set the
-variable. Proton-GE does not set it either as of its current `master`.
+[#3083](https://github.com/HansKristian-Work/vkd3d-proton/pull/3083)), and no Proton sets the variable: not
+Valve's, not Proton-GE as of its current `master`, and not this one.
 
 ## References
 
