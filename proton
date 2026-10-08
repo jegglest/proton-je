@@ -327,6 +327,29 @@ def try_get_steam_dir():
 
     return g_session.env["STEAM_COMPAT_CLIENT_INSTALL_PATH"]
 
+def find_amdxcffx64():
+    #AMD's FSR 4 driver DLL, which amdxc64 loads to upgrade FSR 3.1 games to FSR 4. Steam's Proton Experimental
+    #and Proton Hotfix carry it in contrib/, which a build from source does not have, so fall back to Valve's
+    #copy in the Steam library.
+    candidates = [g_proton.contrib_dir + "amdxcffx64.dll"]
+
+    steamapps_dirs = []
+    if "STEAM_COMPAT_LIBRARY_PATHS" in g_session.env:
+        steamapps_dirs += g_session.env["STEAM_COMPAT_LIBRARY_PATHS"].split(":")
+    steam_dir = try_get_steam_dir()
+    if steam_dir:
+        steamapps_dirs.append(os.path.join(steam_dir, "steamapps"))
+
+    for steamapps in steamapps_dirs:
+        for tool in ["Proton - Experimental", "Proton Hotfix"]:
+            candidates.append(os.path.join(steamapps, "common", tool, "contrib", "amdxcffx64.dll"))
+
+    for path in candidates:
+        if file_exists(path, follow_symlinks=True):
+            return path
+
+    return None
+
 def setup_dir_drive(compat_option, drive_name, dest_dir):
         drive_path = g_compatdata.prefix_dir + "dosdevices/" + drive_name
         if compat_option in g_session.compat_config:
@@ -1161,9 +1184,14 @@ class CompatData:
                         prefix=self.prefix_dir, track_file=tracked_files, link_debug=True)
 
                 #copy contrib dlls
-                try_copy(g_proton.contrib_dir + "amdxcffx64.dll", "drive_c/windows/system32",
-                        prefix=self.prefix_dir, track_file=tracked_files, link_debug=True,
-                        optional=True) # redist versions may not have the contrib dir
+                amdxcffx64 = find_amdxcffx64()
+                if amdxcffx64:
+                    try_copy(amdxcffx64, "drive_c/windows/system32",
+                            prefix=self.prefix_dir, track_file=tracked_files, link_debug=True,
+                            optional=True)
+                else:
+                    log("amdxcffx64.dll not found, no FSR 4 upgrades: install Proton Experimental or put the DLL in " +
+                            g_proton.contrib_dir)
 
                 if use_wined3d:
                     dxvkfiles = []
@@ -1815,6 +1843,8 @@ class Session:
         self.check_environment("PROTON_DISABLE_NVAPI", "disablenvapi")
         self.check_environment("PROTON_FORCE_NVAPI", "forcenvapi")
         self.check_environment("PROTON_HIDE_APU", "hideapu")
+        self.check_environment("PROTON_FSR4_UPGRADE", "fsr4")
+        self.check_environment("PROTON_FSR4_INDICATOR", "fsr4hud")
 
         if "nofsync" in self.compat_config:
             self.env.pop("WINEFSYNC", "")
@@ -1965,6 +1995,17 @@ class Session:
 
         if "hideapu" in self.compat_config:
             self.env["WINE_HIDE_APU"] = "1"
+
+        #amdxc64 upgrades FSR 3.1 to FSR 4 on its own on discrete RDNA2+ GPUs when amdxcffx64.dll is present;
+        #FSR4_UPGRADE=1 forces it on other hardware, FSR4_UPGRADE=0 turns it off
+        if "fsr4" in self.compat_config:
+            self.env.setdefault("FSR4_UPGRADE", "1")
+        elif "PROTON_FSR4_UPGRADE" in self.env:
+            self.env.setdefault("FSR4_UPGRADE", "0")
+
+        if "fsr4hud" in self.compat_config:
+            self.env["FSR_WATERMARK"] = "1"
+            self.env["FSR_FG_WATERMARK"] = "1"
 
         if "usenativexinput13" in self.compat_config:
             self.dlloverrides["xinput1_3"] = "n"
