@@ -59,7 +59,8 @@ AMD's FSR 4 DLL (`contrib/amdxcffx64.dll`, FSR 4.1.1). The stub answers none of 
 choosing a model (the adapter family from `D3DKMTQueryAdapterInfo`, the wave-matrix properties, which shader
 intrinsics work), so on RDNA4 the DLL announces FSR 4 but renders the FSR 3 model, and Valve limited the automatic
 upgrade to RDNA3 to avoid that confusion (see the issue). Etaash Mathamsetty's
-[Proton-EM](https://github.com/Etaash-mathamsetty/Proton) implements the driver side: `amdxc64` on AMD's SDK
+[Proton-EM](https://github.com/Etaash-mathamsetty/Proton) (Wine branch
+[`em-11`](https://github.com/Etaash-mathamsetty/wine-valve/tree/em-11)) implements the driver side: `amdxc64` on AMD's SDK
 interfaces, the `IAmdExtD3DDevice8` and shader-intrinsics queries answered from vkd3d-proton's wave-matrix
 support, FSR 4.1.1's `UpdateFfxApiProviderEx`, the ML frame-generation upgrade, and `win32u` reporting the Navi4x
 (FP8) or Navi3x (INT8) adapter family. Proton-GE ships this as patches in its EM-11 set; commits 6 to 31 are those
