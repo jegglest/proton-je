@@ -2,9 +2,9 @@ Proton-JE
 =========
 
 Valve's [Proton Experimental](https://github.com/ValveSoftware/Proton/tree/experimental_11.0) plus the patches I
-am trying to get into upstream Wine, and the FSR 4 driver-side work from Proton-EM, as shipped by Proton-GE, that
-makes FSR 4 work on RDNA4 cards, built the way Valve builds Proton, so that other people can test the fixes
-before they land. Nothing else is changed: no wine-staging, no other custom patches.
+am trying to get into upstream Wine, the FSR 4 driver-side work from Proton-EM, as shipped by Proton-GE, that
+makes FSR 4 work on RDNA4 cards, and AMD Anti-Lag 2 switched on, built the way Valve builds Proton, so that other
+people can test the fixes before they land. Nothing else is changed: no wine-staging, no other custom patches.
 
 | | |
 |---|---|
@@ -77,6 +77,15 @@ alone. RADV must expose `VK_KHR_cooperative_matrix`, and `VK_EXT_shader_float8` 
 AMD wave-matrix intrinsics. Proton Experimental must be installed in Steam, which it is by default, or the DLL
 placed in the tool's `contrib/` directory. The [write-up](docs-je/fsr4-rdna4.md) has the details and the test
 results.
+
+**AMD Anti-Lag 2** (`proton` script only, no Wine change). Games that integrate AMD's Anti-Lag 2 SDK, Helldivers 2
+among them, ask `amdxc64` for its `IAmdExtAntiLagApi` interface, which vkd3d-proton implements on top of
+`VK_AMD_anti_lag`. RADV does not expose that extension itself: Mesa ships it as the Vulkan layer
+`VK_LAYER_MESA_anti_lag`, which stays inactive unless `ENABLE_LAYER_MESA_ANTI_LAG=1` is in the game's
+environment, so under Proton Experimental the query fails and the game's Anti-Lag 2 setting does nothing.
+Proton-JE sets that variable by default; `PROTON_AMD_ANTI_LAG=0` leaves it off. Anti-Lag 1, the driver-only mode
+of the Windows driver, has no counterpart on Linux; DXVK's `dxvk.latencySleep` option is the nearest thing for
+Direct3D 9 to 11 games. The [write-up](docs-je/amd-anti-lag-2.md) has the measurements.
 
 Installing a build
 ------------------
