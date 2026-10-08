@@ -112,11 +112,31 @@ The two changed compilation units (`dlls/amdxc64/main.c` with its generated inte
 `amdxc64.dll` links against `vulkan-1.dll` for the hardware check. The full tool comes from the CI build of the
 tagged commit, as every release here.
 
+### The driver interfaces
+
+[`repro/amd_probe.c`](repro/amd_probe.c) creates a D3D12 device and asks `amdxc64` the questions the FSR 4 DLL
+asks, on the RX 9070 XT with RADV (Mesa 26.2.4), through each tool's `proton` script with nothing set in the
+environment:
+
+| Query | `proton-je-11.0-20261001-1` (Valve's `amdxc64`) | dev build of commit `9910b516` (these patches) |
+|---|---|---|
+| `amdxcffx64.dll` in the prefix | no (`contrib/` missing; `try_copy` error in the log) | yes, 65,657,608 bytes, from Steam's Proton Experimental |
+| `IAmdExtD3DFactory` | `S_OK`, but an unnamed stub | `S_OK` |
+| `IAmdExtD3DShaderIntrinsics::CheckSupport(WaveMatrix)` | `0x4c` (stub returns garbage) | `S_OK` |
+| `IAmdExtD3DShaderIntrinsics::CheckSupport(Float8Conversion)` | `0x4c` | `S_OK` |
+| `IAmdExtD3DDevice8` | `0x80004002` (`E_NOINTERFACE`) | `S_OK` |
+| `IAmdExtD3DDevice8::GetWaveMatrixProperties()` | not reachable | 1 entry: 16x16x16, A and B FP8 (type 11), C and result FP32 |
+| `amdxc` trace | `get_luid`, device not in the Navi 3x list, no upgrade | `check_intrinsic_support FSR4 FP8 supported!`, `amdxcffx64` loaded and called through `UpdateFfxApiProviderEx()` |
+
+The wave-matrix entry and the two `CheckSupport()` answers are what the FSR 4 DLL needs to choose the FP8 model;
+Valve's stub cannot give them. The probe's own `UpdateFfxApiProvider()` call passes an empty request and gets
+`E_INVALIDARG` back from the DLL, so the provider itself is exercised by the game, not here.
+
 ### In the game
 
-Pending: Helldivers 2 on the test machine (RX 9070 XT, RADV, Mesa 26.2.4), which names the FSR version in its
-video settings. This section will carry the result and the `WINEDEBUG=+amdxc` trace of the provider the DLL
-returned.
+Pending: Helldivers 2 on the test machine, which names the FSR version in its video settings and ships the FSR 4
+SDK (`amd_fidelityfx_upscaler_dx12.dll`), so it takes the same driver interfaces for its native FSR 4 as the
+upgrade path does.
 
 ## Upstream status
 
