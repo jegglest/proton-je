@@ -62,17 +62,18 @@ RDNA3. The upgrade is off by default and switched on per game in Adrenalin's dri
 [Proton-EM](https://github.com/Etaash-mathamsetty/Proton) (Etaash Mathamsetty) implements the driver side on top of
 Valve's stub, and Proton-GE applies the commits as the amdxc, win32u and d3dkmt patches of its EM-11 set
 ([`patches/wine-hotfixes/wine-wayland/`](https://github.com/GloriousEggroll/proton-ge-custom/tree/dceec5e940afd299f40304f24116b141d0798a72/patches/wine-hotfixes/wine-wayland)
-at `dceec5e9`). Commits 6 to 31 of the Wine branch are those 26 patches applied with `git am`, so author, date
-and message are the originals; the GE patch numbers are in brackets:
+at `dceec5e9`). Commits 6 to 31 of the Wine branch are those 26 patches applied with `git am`, so author and date
+are the originals, and each commit message ends with a line naming Etaash Mathamsetty and Proton-EM as its
+source; the GE patch numbers are in brackets:
 
-- `amdxc64`: revert Valve's auto-enable [0001]; port to AMD's SDK interface headers [0035]; stub
-  `IAmdExtD3DDevice8` [0036]; `FSR_WATERMARK` [0037]; WMMA support check [0038]; the ML frame-generation (MLFG)
-  override, its user control and watermark, on by default [0039–0042, 0178]; query WMMA and FP8 support from
-  vkd3d-proton's `ID3D12DeviceExt3::SupportsAGSExtension()` [0125]; quieter `IAmdExtD3DDevice1` [0133]; factory
-  singleton [0144]; FSR 4.1.1's `UpdateFfxApiProviderEx()` [0147]; automatic upgrades [0148] on discrete RDNA2+
-  hardware, checked through vkd3d-proton's Vulkan interop [0150]; drop the FSR 3 upgrade path [0171]; one-time
-  FP16 fixme [0181]; `AmdExtD3DShaderIntrinsics::CheckSupport()` per intrinsic [0219]; `IAmdExtD3DCreateDevice`
-  [0234].
+- `amdxc64`: revert Valve's auto-enable [0001] (its message names that commit by its ID in Proton-EM's tree);
+  port to AMD's SDK interface headers [0035]; stub `IAmdExtD3DDevice8` [0036]; `FSR_WATERMARK` [0037]; WMMA
+  support check [0038]; the ML frame-generation (MLFG) override, its user control and watermark, on by default
+  [0039–0042, 0178]; query WMMA and FP8 support from vkd3d-proton's `ID3D12DeviceExt3::SupportsAGSExtension()`
+  [0125]; quieter `IAmdExtD3DDevice1` [0133]; factory singleton [0144]; FSR 4.1.1's `UpdateFfxApiProviderEx()`
+  [0147]; automatic upgrades [0148] on discrete RDNA2+ hardware, checked through vkd3d-proton's Vulkan interop
+  [0150]; drop the FSR 3 upgrade path [0171]; one-time FP16 fixme [0181];
+  `AmdExtD3DShaderIntrinsics::CheckSupport()` per intrinsic [0219]; `IAmdExtD3DCreateDevice` [0234].
 - `win32u`: `KMTQAITYPE_UMDRIVERPRIVATE` [0146, 0149, 0165, 0172, 0225] reports the Navi4x family when RADV
   exposes `VK_EXT_shader_float8` and `VK_NV_cooperative_matrix2`, the Navi3x family on other discrete RDNA2+
   cards or with `FSR4_UPGRADE=1`, in the 0x4360-byte block that AGS reads; `KMTQAITYPE_UMDRIVERNAME` [0235]
