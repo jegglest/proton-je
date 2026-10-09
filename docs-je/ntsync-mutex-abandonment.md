@@ -3,6 +3,7 @@
 | | |
 |---|---|
 | Patches | commits 4 and 5 on [`jegglest/wine`, branch `je-11.0`](https://github.com/jegglest/wine/commits/je-11.0) (`server/inproc_sync.c`, `server/handle.c`, `server/process.c`, `server/protocol.def`, `dlls/ntdll/unix/sync.c`, `dlls/ntdll/unix/server.c`) |
+| Patch pages | [patch 4](patches/ntsync-mutex-owned-after-close.md) (`wineserver` only) and [patch 5](patches/ntsync-mutex-in-use-after-close.md) (the wait-all case, with the protocol change): the commit, the patch file, what each needs and how to check it |
 | Upstream | Wine bug [60417](https://bugs.winehq.org/show_bug.cgi?id=60417) (wineserver), filed 2026-10-01, UNCONFIRMED, no reply yet |
 | Seen as | the two long-standing `kernel32:sync` `test_mutex` failures when `/dev/ntsync` is in use; a program that relies on `WAIT_ABANDONED` to recover from a dead thread hangs instead |
 | Affects | Wine and Proton with ntsync (Linux 6.14 and later); the server-side mutexes used without ntsync are fine |
