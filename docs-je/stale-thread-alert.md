@@ -3,6 +3,7 @@
 | | |
 |---|---|
 | Patches | commits 1 to 3 on [`jegglest/wine`, branch `je-11.0`](https://github.com/jegglest/wine/commits/je-11.0) (`dlls/ntdll/sync.c`, `dlls/ntdll/tests/sync.c`) |
+| Patch pages | [patch 1](patches/waitonaddress-use-after-return.md) (the use-after-return) and [patches 2 and 3](patches/waitonaddress-stale-alert.md) (the stale alert, with the test): the commit, the patch file, what each needs and how to check it |
 | Upstream | Wine bug [60397](https://bugs.winehq.org/show_bug.cgi?id=60397) (ntdll), filed 2026-09-27, UNCONFIRMED |
 | Seen as | Warhammer 40,000: Space Marine 2 crashing mid-mission under Proton: Proton issue [#8072](https://github.com/ValveSoftware/Proton/issues/8072) |
 | Affects | every current Wine and Proton: the code in Proton Experimental's `ntdll` is identical to Wine master |
@@ -217,6 +218,13 @@ without any access violation, a different problem.
   probe's source; no further reply as of 2026-10-07. The bug is UNCONFIRMED.
 - 2026-10-03: Valve ([kisak-valve](https://github.com/ValveSoftware/Proton/issues/8072#issuecomment-5963964047))
   said that changes that can go to upstream Wine should go there first, with Wine's LLM policy in mind.
+- Precedent: Wine merge request [3929](https://gitlab.winehq.org/wine/wine/-/merge_requests/3929) (Paul Gofman,
+  merged 2024-04-24) fixed the other way a thread could be left alerted after its wait, a waiter alerted twice by
+  `RtlWakeAddressAll()`; its description says it "fixes Resident Evil games randomly crashing due to unhandled
+  spurious SleepConditionVariableCS wakeups". The same alert and the same symptom, with only the race that
+  produces the stray alert differing. Its second commit is e00cbef06d, the pre-check behind point 1.
+- 2026-10-07: [wine-cachyos PR #34](https://github.com/CachyOS/wine-cachyos/pull/34) (Erhan Bilgili) makes the
+  same change as patch 1, in the same form, without citing the bug; open as of 2026-10-09.
 - Wine's Developer FAQ says LLM-generated code is not accepted. The patches here were written with an LLM, so
   upstream has the bug reports, the measurements and the reproducers, and the patches are a reference for a fix
   that a Wine developer would write themselves.
