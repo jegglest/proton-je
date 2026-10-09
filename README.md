@@ -1,27 +1,46 @@
 Proton-JE
 =========
 
-Valve's [Proton Experimental](https://github.com/ValveSoftware/Proton/tree/experimental_11.0) plus the patches I
-am trying to get into upstream Wine, and the FSR 4 driver-side work from Proton-EM, as shipped by Proton-GE, that
-makes FSR 4 work on RDNA4 cards, built the way Valve builds Proton, so that other people can test the fixes
-before they land. Nothing else is changed: no wine-staging, no other custom patches.
+Valve's [Proton Experimental](https://github.com/ValveSoftware/Proton/tree/experimental_11.0), built the way
+Valve builds Proton, with two kinds of changes on top that are kept apart: the patches I am trying to get into
+upstream Wine, five commits for two Wine bugs, so that other people can test the fixes before they land; and,
+carried as they are from Proton-EM and not for upstreaming, the FSR 4 driver-side commits that make FSR 4 work
+on RDNA4 cards. Nothing else is changed: no wine-staging, no other custom patches.
 
 | | |
 |---|---|
 | Base | Proton `experimental_11.0` commit [`70b7e109`](https://github.com/ValveSoftware/Proton/commit/70b7e109e8fc0783a509805f3d1bc090b55dac3f) (Steam's `experimental-11.0-20261001`) with Wine [`6d211aab`](https://github.com/ValveSoftware/wine/commit/6d211aabd1d325c9990a5fd7a81b9db37caae12d) |
-| Patches | the commits on branch [`je-11.0` of `jegglest/wine`](https://github.com/jegglest/wine/commits/je-11.0): Valve's Wine for this Experimental, my five synchronization fixes and the 26 FSR 4 commits by Etaash Mathamsetty; the `wine/` submodule points at it |
+| Patches | the commits on branch [`je-11.0` of `jegglest/wine`](https://github.com/jegglest/wine/commits/je-11.0): Valve's Wine for this Experimental, then commits 1 to 5, my synchronization fixes meant for upstream Wine, then commits 6 to 31, Etaash Mathamsetty's FSR 4 work carried from Proton-EM; the `wine/` submodule points at it |
 | Builds | [Releases](https://github.com/jegglest/proton-je/releases): `proton-je-<Proton version>-<n>.tar.xz`, built by [GitHub Actions](.github/workflows/build.yml) from the tagged commit |
-| Write-ups | [`docs-je/`](docs-je): one file per issue, with the cause, the fix and the test results on Linux and on Windows |
+| Write-ups | [`docs-je/`](docs-je): one page per patch for upstream ([`docs-je/patches/`](docs-je/patches)) with the commit, the patch file and how to check it; the full investigation of each issue, with the test results on Linux and on Windows |
 | Discussion | Proton issue [#8072](https://github.com/ValveSoftware/Proton/issues/8072), Wine bugs [60397](https://bugs.winehq.org/show_bug.cgi?id=60397) and [60417](https://bugs.winehq.org/show_bug.cgi?id=60417); Proton issue [#9908](https://github.com/ValveSoftware/Proton/issues/9908) for FSR 4 |
 
-Current patches
+What is carried
 ---------------
 
-The Wine branch carries two groups of commits: my fixes for two bugs in Wine's synchronization primitives
-(commits 1 to 5), found while tracking down the mid-mission crash of Warhammer 40,000: Space Marine 2 under Proton
-([#8072](https://github.com/ValveSoftware/Proton/issues/8072)), and the FSR 4 driver side from Proton-EM (commits
-6 to 31). The short version follows; [`docs-je/`](docs-je) has the full write-up of each, with the test programs
-and the Windows comparison.
+Two groups, kept apart on purpose: my patches for upstream Wine, and Proton-EM's FSR 4 work carried as it is.
+[`docs-je/`](docs-je) has the full write-up of each issue, with the test programs and the Windows comparison.
+
+### For upstream Wine: commits 1 to 5
+
+Fixes for two bugs in Wine's synchronization primitives, found while tracking down the mid-mission crash of
+Warhammer 40,000: Space Marine 2 under Proton ([#8072](https://github.com/ValveSoftware/Proton/issues/8072)).
+They are four self-contained pieces, and each has its own page under [`docs-je/patches/`](docs-je/patches) with
+the commit, the patch file, what it fixes, what it needs, where it applies, how to check it and where it stands
+upstream:
+
+| Patch | What it does | Upstream |
+|---|---|---|
+| [1](docs-je/patches/waitonaddress-use-after-return.md) | `RtlWakeAddressSingle()` and `RtlWakeAddressAll()` no longer touch a waiter's stack entry after clearing its address: a use-after-return on the path every lock and condition-variable wake takes | Wine bug [60397](https://bugs.winehq.org/show_bug.cgi?id=60397), point 1; the same change is pending as [wine-cachyos PR #34](https://github.com/CachyOS/wine-cachyos/pull/34) |
+| [2 and 3](docs-je/patches/waitonaddress-stale-alert.md) | a `RtlWaitOnAddress()` waiter that times out just as a waker dequeues it takes the alert that is on its way, as Windows does, instead of leaving it to end the thread's next wait early; plus a conformance test. This is the Space Marine 2 crash | Wine bug 60397, points 2 and 3 |
+| [4](docs-je/patches/ntsync-mutex-owned-after-close.md) | `wineserver` keeps an ntsync mutex that is owned when its last handle is closed, so that its owner's death still abandons it; the two `kernel32:sync` `test_mutex` failures | Wine bug [60417](https://bugs.winehq.org/show_bug.cgi?id=60417) |
+| [5](docs-je/patches/ntsync-mutex-in-use-after-close.md) | the remaining case, a mutex closed while a wait-all of the same process is still pending on it; a new server request, so the protocol version changes | Wine bug 60417, second part |
+
+All five apply with `git am` to Valve's Wine for this Experimental and to wine-cachyos; 1 to 3 also to Wine
+master, 4 and 5 need a hand port there (checked 2026-10-09, details on the pages). The
+[compare view](https://github.com/jegglest/wine/compare/6d211aabd1d...34ee3b22fd5) shows exactly these commits;
+`.patch` appended to it, or to any commit link, makes GitHub generate the series or that one commit as a
+`git am` file. No patch files are kept here: the commits are the patches.
 
 **Stale thread alerts from `RtlWaitOnAddress()`** (patches 1–3, Wine bug
 [60397](https://bugs.winehq.org/show_bug.cgi?id=60397)). `RtlWakeAddressSingle()` and `RtlWakeAddressAll()`
@@ -50,7 +69,13 @@ people in that thread report the same with Jpokul's prototype build, which carri
 `ntdll:sync` and `kernel32:sync` test suites pass with the patches, and so does the new test on Windows 11.
 
 The synchronization patches were written with the help of an LLM (Claude), which Wine's contribution policy
-excludes from merge requests, so upstream has them as bug reports with the analysis and the patches attached.
+excludes from merge requests, so upstream has them as bug reports with the analysis, and the patches live here
+and on the Proton issue as a reference.
+
+### Carried from Proton-EM, not for upstream: commits 6 to 31
+
+These are Etaash Mathamsetty's commits, carried unchanged with their authorship so that the builds are nicer to
+test with on RDNA4 cards. Nothing here tries to upstream them, and `amdxc64` is a Proton-only module in any case.
 
 **FSR 4 on RDNA4 GPUs** (commits 6–31, Proton issue
 [#9908](https://github.com/ValveSoftware/Proton/issues/9908)). A game with FSR 3.1 asks the AMD driver, through
@@ -79,6 +104,8 @@ AMD wave-matrix intrinsics. Proton Experimental must be installed in Steam, whic
 placed in the tool's `contrib/` directory. On an RX 9070 XT the driver queries the FSR 4 DLL makes now come back
 with FP8 wave-matrix support, where Valve's stub refuses them, and Helldivers 2 offers FSR 4 where it offered
 FSR 3 before; the [write-up](docs-je/fsr4-rdna4.md) has the measurements.
+
+### Not a patch
 
 **AMD Anti-Lag 2** (nothing carried here, one variable to set). Games that integrate AMD's Anti-Lag 2 SDK,
 Helldivers 2 among them, ask `amdxc64` for its `IAmdExtAntiLagApi` interface, which vkd3d-proton implements on

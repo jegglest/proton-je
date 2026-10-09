@@ -15,14 +15,24 @@ repo=${GITHUB_REPOSITORY:-jegglest/proton-je}
 
 steam_note=""
 [ -n "$steam" ] && steam_note=" (Steam's \`$steam\`)"
-echo "\`$name\` is [Proton Experimental](https://github.com/ValveSoftware/Proton/tree/experimental_11.0)$steam_note: Proton commit [\`${base:0:10}\`](https://github.com/ValveSoftware/Proton/commit/$base) with Wine [\`${wine_base:0:10}\`](https://github.com/ValveSoftware/wine/commit/$wine_base), built from Valve's sources in Valve's SDK container, with these commits on top of that Wine ([jegglest/wine](https://github.com/jegglest/wine/compare/$wine_base...$wine_head)) and, apart from the \`proton\` script's handling of the FSR 4 DLL, nothing else changed:"
+echo "\`$name\` is [Proton Experimental](https://github.com/ValveSoftware/Proton/tree/experimental_11.0)$steam_note: Proton commit [\`${base:0:10}\`](https://github.com/ValveSoftware/Proton/commit/$base) with Wine [\`${wine_base:0:10}\`](https://github.com/ValveSoftware/wine/commit/$wine_base), built from Valve's sources in Valve's SDK container, with these commits on top of that Wine ([jegglest/wine](https://github.com/jegglest/wine/compare/$wine_base...$wine_head)) and, apart from the \`proton\` script's handling of the FSR 4 DLL, nothing else changed."
 echo
+# Commits by the repository's author are the ones meant for upstream Wine; everything else is carried from elsewhere.
+upstream=() carried=()
 for commit in $(git -C wine rev-list --reverse "$wine_base..$wine_head"); do
-    echo "- $(git -C wine log -1 --format=%s "$commit") ([\`${commit:0:10}\`](https://github.com/jegglest/wine/commit/$commit)), by $(git -C wine log -1 --format=%an "$commit")"
+    line="- $(git -C wine log -1 --format=%s "$commit") ([\`${commit:0:10}\`](https://github.com/jegglest/wine/commit/$commit)), by $(git -C wine log -1 --format=%an "$commit")"
+    if [ "$(git -C wine log -1 --format=%an "$commit")" = "Jason Eggleston" ]; then upstream+=("$line"); else carried+=("$line"); fi
 done
+echo "**For upstream Wine**, one page per patch in [\`docs-je/patches/\`](https://github.com/$repo/tree/$name/docs-je/patches): stale thread alerts left by \`RtlWaitOnAddress()\` (Wine bug [60397](https://bugs.winehq.org/show_bug.cgi?id=60397), the Space Marine 2 crash in Proton issue [#8072](https://github.com/ValveSoftware/Proton/issues/8072)) and ntsync mutexes that are never abandoned (Wine bug [60417](https://bugs.winehq.org/show_bug.cgi?id=60417)):"
+echo
+printf '%s\n' "${upstream[@]}"
+echo
+echo "**Carried from Proton-EM, not for upstream**: Etaash Mathamsetty's FSR 4 driver-side work, as Proton-GE ships it, which makes the FSR 3.1 to FSR 4 upgrade work on RDNA4 cards (Proton issue [#9908](https://github.com/ValveSoftware/Proton/issues/9908)); the FSR 4 DLL itself comes from Steam's Proton Experimental install, see the [README](https://github.com/$repo/tree/$name#what-is-carried):"
+echo
+printf '%s\n' "${carried[@]}"
 cat <<NOTES
 
-The first five fix stale thread alerts left by \`RtlWaitOnAddress()\` (Wine bug [60397](https://bugs.winehq.org/show_bug.cgi?id=60397), the Space Marine 2 crash in Proton issue [#8072](https://github.com/ValveSoftware/Proton/issues/8072)) and ntsync mutexes that are never abandoned (Wine bug [60417](https://bugs.winehq.org/show_bug.cgi?id=60417)). The rest are Etaash Mathamsetty's FSR 4 driver-side work from Proton-EM, as Proton-GE ships it, which makes the FSR 3.1 to FSR 4 upgrade work on RDNA4 cards (Proton issue [#9908](https://github.com/ValveSoftware/Proton/issues/9908)); the FSR 4 DLL itself comes from Steam's Proton Experimental install, see the [README](https://github.com/$repo/tree/$name#current-patches). AMD Anti-Lag 2 needs no patch, only \`ENABLE_LAYER_MESA_ANTI_LAG=1\` in the game's launch options (README). See [\`docs-je/\`](https://github.com/$repo/tree/$name/docs-je) for the write-up of each issue, with the test results on Linux and on Windows.
+AMD Anti-Lag 2 needs no patch, only \`ENABLE_LAYER_MESA_ANTI_LAG=1\` in the game's launch options (README). See [\`docs-je/\`](https://github.com/$repo/tree/$name/docs-je) for the write-up of each issue, with the test results on Linux and on Windows.
 
 **Install:** extract \`$name.tar.xz\` into \`~/.steam/root/compatibilitytools.d/\` (for Flatpak Steam, \`~/.var/app/com.valvesoftware.Steam/data/Steam/compatibilitytools.d/\`), restart Steam, then select \`$name\` under the game's Properties > Compatibility.
 
