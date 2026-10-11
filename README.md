@@ -11,7 +11,7 @@ on RDNA4 cards. Nothing else is changed: no wine-staging, no other custom patche
 |---|---|
 | Base | Proton `experimental_11.0` commit [`70b7e109`](https://github.com/ValveSoftware/Proton/commit/70b7e109e8fc0783a509805f3d1bc090b55dac3f) (Steam's `experimental-11.0-20261001`) with Wine [`6d211aab`](https://github.com/ValveSoftware/wine/commit/6d211aabd1d325c9990a5fd7a81b9db37caae12d) |
 | Patches | the commits on branch [`je-11.0` of `jegglest/wine`](https://github.com/jegglest/wine/commits/je-11.0): Valve's Wine for this Experimental, then commits 1 to 5, my synchronization fixes meant for upstream Wine, then commits 6 to 31, Etaash Mathamsetty's FSR 4 work carried from Proton-EM; the `wine/` submodule points at it |
-| Builds | [Releases](https://github.com/jegglest/proton-je/releases): `proton-je-<Proton version>-<n>.tar.xz`, built by [GitHub Actions](.github/workflows/build.yml) from the tagged commit |
+| Builds | [Releases](https://github.com/jegglest/proton-je/releases): `proton-je-<Proton version>-<n>.tar.xz`, built by [GitHub Actions](.github/workflows/build.yml) from the tagged commit. Use `proton-je-11.0-20261001-3` or later: `-1` and `-2` abort any game once it has about 3300 handles open at once ([why](docs-je/patches/ntsync-mutex-in-use-after-close.md#the-change)) |
 | Write-ups | [`docs-je/`](docs-je): one page per patch for upstream ([`docs-je/patches/`](docs-je/patches)) with the commit, the patch file and how to check it; the full investigation of each issue, with the test results on Linux and on Windows |
 | Discussion | Proton issue [#8072](https://github.com/ValveSoftware/Proton/issues/8072), Wine bugs [60397](https://bugs.winehq.org/show_bug.cgi?id=60397) and [60417](https://bugs.winehq.org/show_bug.cgi?id=60417); Proton issue [#9908](https://github.com/ValveSoftware/Proton/issues/9908) for FSR 4 |
 
@@ -38,7 +38,7 @@ upstream:
 
 All five apply with `git am` to Valve's Wine for this Experimental and to wine-cachyos; 1 to 3 also to Wine
 master, 4 and 5 need a hand port there (checked 2026-10-09, details on the pages). The
-[compare view](https://github.com/jegglest/wine/compare/6d211aabd1d...34ee3b22fd5) shows exactly these commits;
+[compare view](https://github.com/jegglest/wine/compare/6d211aabd1d...7dda1b8569e) shows exactly these commits;
 `.patch` appended to it, or to any commit link, makes GitHub generate the series or that one commit as a
 `git am` file. No patch files are kept here: the commits are the patches.
 

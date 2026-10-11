@@ -16,13 +16,13 @@ patch file, what it fixes, what it needs, where it applies, how to check it and 
 | 1 | [The wakers must not touch a waiter's entry after clearing its address](patches/waitonaddress-use-after-return.md) | [`f81587bf7d`](https://github.com/jegglest/wine/commit/f81587bf7d9fba5a0271b73d883942a67d7d4f7b) | `dlls/ntdll/sync.c` | Wine bug [60397](https://bugs.winehq.org/show_bug.cgi?id=60397), point 1; the same change is pending as [wine-cachyos PR #34](https://github.com/CachyOS/wine-cachyos/pull/34) |
 | 2 and 3 | [Take the in-flight alert when a wait times out after being dequeued](patches/waitonaddress-stale-alert.md), with its conformance test | [`974c8a07f2`](https://github.com/jegglest/wine/commit/974c8a07f272fde9886048ccfac086eecef7f205), [`662332d53a`](https://github.com/jegglest/wine/commit/662332d53aabe24bd7eab7e5a1978dce692de747) | `dlls/ntdll/sync.c`, `dlls/ntdll/tests/sync.c` | Wine bug 60397, points 2 and 3 |
 | 4 | [Keep an owned ntsync mutex reachable after its server object is destroyed](patches/ntsync-mutex-owned-after-close.md) | [`7562ac9bc0`](https://github.com/jegglest/wine/commit/7562ac9bc03a21d009a64f9094d00bb6439be1a3) | `server/inproc_sync.c` | Wine bug [60417](https://bugs.winehq.org/show_bug.cgi?id=60417) |
-| 5 | [Keep an in-process mutex that a process closed while still using it](patches/ntsync-mutex-in-use-after-close.md) | [`34ee3b22fd`](https://github.com/jegglest/wine/commit/34ee3b22fd5c66ddff378304bb2e7e1b4a7b3a4e) | `server/`, `dlls/ntdll/unix/` (server protocol version bump) | Wine bug 60417, second part |
+| 5 | [Keep an in-process mutex that a process closed while still using it](patches/ntsync-mutex-in-use-after-close.md) | [`7dda1b8569`](https://github.com/jegglest/wine/commit/7dda1b8569e7658b85c1d9c5b18a0b7566f3bf8e) | `server/`, `dlls/ntdll/unix/` (server protocol version bump) | Wine bug 60417, second part |
 
-Getting them as patches: the [compare view](https://github.com/jegglest/wine/compare/6d211aabd1d...34ee3b22fd5)
+Getting them as patches: the [compare view](https://github.com/jegglest/wine/compare/6d211aabd1d...7dda1b8569e)
 shows exactly these five commits, and GitHub generates the patch files from the commits on request: `.patch`
 appended to any commit link above gives that commit as a `git am` file, and
-[the compare link with `.patch` appended](https://github.com/jegglest/wine/compare/6d211aabd1d...34ee3b22fd5.patch)
-gives the whole series in one file (`git format-patch 6d211aabd1d..34ee3b22fd5` in a clone does the same). No
+[the compare link with `.patch` appended](https://github.com/jegglest/wine/compare/6d211aabd1d...7dda1b8569e.patch)
+gives the whole series in one file (`git format-patch 6d211aabd1d..7dda1b8569e` in a clone does the same). No
 patch files are kept in this repository: the commits are the patches. Patches 2 and 5 depend on 1 and 4
 respectively; 1, 3 and 4 stand alone. Checked on 2026-10-09: all five apply with `git am` to Valve's Wine
 `6d211aab` and to wine-cachyos (`cachyos_11.0_20261001/main` of 2026-10-04); 1 to 3 also to Wine master, while
