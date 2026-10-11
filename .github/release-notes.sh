@@ -17,6 +17,8 @@ steam_note=""
 [ -n "$steam" ] && steam_note=" (Steam's \`$steam\`)"
 echo "\`$name\` is [Proton Experimental](https://github.com/ValveSoftware/Proton/tree/experimental_11.0)$steam_note: Proton commit [\`${base:0:10}\`](https://github.com/ValveSoftware/Proton/commit/$base) with Wine [\`${wine_base:0:10}\`](https://github.com/ValveSoftware/wine/commit/$wine_base), built from Valve's sources in Valve's SDK container, with these commits on top of that Wine ([jegglest/wine](https://github.com/jegglest/wine/compare/$wine_base...$wine_head)) and, apart from the \`proton\` script's handling of the FSR 4 DLL, nothing else changed."
 echo
+# A release that needs a word of its own has it in docs-je/releases/<build name>.md.
+if [ -f "docs-je/releases/$name.md" ]; then cat "docs-je/releases/$name.md"; echo; fi
 # Commits by the repository's author are the ones meant for upstream Wine; everything else is carried from elsewhere.
 upstream=() carried=()
 for commit in $(git -C wine rev-list --reverse "$wine_base..$wine_head"); do

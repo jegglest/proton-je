@@ -9,6 +9,7 @@ on Windows, so that Wine can be compared with it. The write-ups quote their resu
 | [`stale_wake.c`](stale_wake.c) | [Stale thread alerts](../stale-thread-alert.md) | Stress program with the game's pattern: workers take a tcmalloc-style spinlock polled with `WaitOnAddress(..., 0)` and then do one unlooped `SleepConditionVariableCS(INFINITE)` on a future that another thread completes. Counts waits that return while the future is still pending. |
 | [`mutex_abandon.c`](mutex_abandon.c) | [ntsync mutex abandonment](../ntsync-mutex-abandonment.md) | Timed version of the end of Wine's `kernel32:sync` `test_mutex()`, plus the wait-all corner case: a thread owning a mutex is killed with `TerminateThread()` after the mutex handle was closed, and a waiter must get `WAIT_ABANDONED`. |
 | [`amd_probe.c`](amd_probe.c) | [AMD Anti-Lag 2](../amd-anti-lag-2.md), [FSR 4 on RDNA4](../fsr4-rdna4.md) | Creates a D3D12 device and asks the `amdxc64` driver shim for what AMD's SDKs use: the Anti-Lag 2 interface (then the SDK's off, on and frame-marker calls), the `IAmdExtD3DFactory` interfaces FSR 4 queries for wave-matrix and FP8 support, and with `--ffx` the FSR 3.1 to FSR 4 provider upgrade itself. Prints one line per step and writes the same to `amd_probe_out.txt`. |
+| [`inproc_cache_probe.c`](inproc_cache_probe.c) | [ntsync mutex abandonment](../ntsync-mutex-abandonment.md), patch 5 | Creates 5000 events (or the count given) and waits on each one once, so that `ntdll`'s in-process sync cache has to map a second block of entries. Checks the page-size slip of the first version of patch 5, which aborted releases `-1` and `-2` of this repository once a game had about 3300 handles open. Prints the highest handle value and one line per 1000 waits. |
 
 ## Building
 
@@ -19,6 +20,7 @@ x86_64-w64-mingw32-gcc -O2 -D__USE_MINGW_ANSI_STDIO=1 -o stale_wake.exe stale_wa
 x86_64-w64-mingw32-gcc -O2 -D__USE_MINGW_ANSI_STDIO=1 -o raced_wake_probe.exe raced_wake_probe.c
 x86_64-w64-mingw32-gcc -O2 -D__USE_MINGW_ANSI_STDIO=1 -o mutex_abandon.exe mutex_abandon.c
 x86_64-w64-mingw32-gcc -O1 -Wno-format -o amd_probe.exe amd_probe.c
+x86_64-w64-mingw32-gcc -O2 -o inproc_cache_probe.exe inproc_cache_probe.c
 ```
 
 The same commands with `i686-w64-mingw32-gcc` give 32-bit builds, which matter for the mutex issue: under Proton a
@@ -30,6 +32,7 @@ The same commands with `i686-w64-mingw32-gcc` give 32-bit builds, which matter f
 raced_wake_probe.exe [iterations per pass, default 20000] [seconds cap per pass, default 3]
 stale_wake.exe [seconds, default 30] [workers, default 8] [timed|poll|both, default both]
 mutex_abandon.exe [close|keep|waitall, default close] [iterations, default 1]
+inproc_cache_probe.exe [events, default 5000]
 ```
 
 On Linux, run them with the Wine of the Proton build under test, for example from an extracted release:
@@ -46,6 +49,11 @@ on Windows and on a patched Wine, are 0 stale alerts and 0 early returns from th
 `stale_wake`, and `0 failed step(s)` with `returned 0x80 (abandoned)` lines from `mutex_abandon` in all three modes.
 `mutex_abandon` needs ntsync to show the Wine bug (`/dev/ntsync`, Linux 6.14 or later); with `PROTON_NO_NTSYNC=1`
 the server-side mutexes are used and the bug does not occur.
+
+`inproc_cache_probe` must end with `waited on all 5000 events: OK`, on Windows and on Wine. Releases `-1` and
+`-2` of this repository abort it at the wait on the handle with index 3276, with
+``virtual.c:408: anon_mmap_alloc: Assertion `!(size & host_page_mask)' failed.`` on stderr, and the process may then
+hang rather than exit; 3000 events pass there. It needs `/dev/ntsync` in use, like `mutex_abandon`.
 
 `amd_probe.exe` needs vkd3d-proton's `d3d12.dll` and the FSR 4 DLL in the prefix, which only the tool's `proton`
 script sets up, so run it the way Steam would, with a scratch compatdata directory:
