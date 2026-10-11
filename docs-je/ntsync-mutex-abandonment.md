@@ -84,7 +84,11 @@ abandons it there too.
   process. Handles closed with no other user, the common case, involve no extra work. This is the design the
   comment in `dlls/ntdll/unix/sync.c` describes, done with a serial number instead of a handle. Not covered: users
   of uncached entries (a handle number reused while the old object is still in use, or several hundred thousand
-  open handles), which `NtClose()` cannot see.
+  open handles), which `NtClose()` cannot see. The serial makes the cache entry 20 bytes, so the cache's 64K
+  blocks no longer divide into whole entries; the patch maps whole blocks. Its first version mapped the entries'
+  exact size, 65520 bytes, which `anon_mmap_alloc()` rejects with an assertion once a process waits on a handle
+  past the first block of 3276 entries: that is the abort releases `-1` and `-2` had, found with Foundry
+  ([details](patches/ntsync-mutex-in-use-after-close.md#the-change)).
 
 Patch 5 adds a field to two requests and one new request, so the server protocol version changes (Proton's
 build regenerates the protocol headers from `server/protocol.def` with `tools/make_requests`). The new request is
@@ -125,6 +129,11 @@ The server's file-descriptor count was checked before and after the runs so that
 not leak: unchanged after 80 iterations of all three modes (712 descriptors, 455 of them ntsync, on both bases).
 Raw Windows output: [`results/windows-mutex-2026-09-30.txt`](results/windows-mutex-2026-09-30.txt).
 
+The handle-cache probe ([`repro/inproc_cache_probe.c`](repro/inproc_cache_probe.c), 5000 events waited on once each),
+added after the cache block slip described above: release `-2` aborts it at the wait on the handle with index 3276
+and then hangs, while 3000 events pass there; with the fixed unix `ntdll.so` built from commit `7dda1b8` and swapped
+into a copy of `-2`, 5000 and 20000 events pass, and `waitall` and `close` still abandon the mutex, 3 of 3 each.
+
 Wine's conformance tests, same binaries on both systems:
 
 | | `kernel32:sync` | `ntdll:sync` |
@@ -147,6 +156,12 @@ Nothing in Space Marine 2 is known to depend on this; the game runs as before on
   linking the Wine bug.
 - As with the other issue, the patches were written with an LLM and are a reference for upstream, not a merge
   request.
+- For the record, Windows needs none of this bookkeeping: the NT kernel lists the mutexes a thread owns in the
+  thread itself and abandons that list when the thread is run down, and a wait references the object, not the
+  handle. The ntsync driver keeps no per-owner list and leaves owner death to userspace, one kill per mutex, which
+  is why `wineserver` has to know every mutex a dying thread might own. A per-owner list in the driver would be
+  the faithful fix; whether to propose it is an open question, noted on the
+  [patch page](patches/ntsync-mutex-in-use-after-close.md#upstream) and not pursued yet.
 
 ## References
 
@@ -154,3 +169,7 @@ Nothing in Space Marine 2 is known to depend on this; the game runs as before on
 - Wine's `test_mutex()`: https://gitlab.winehq.org/wine/wine/-/blob/master/dlls/kernel32/tests/sync.c
 - Mutex objects on Windows: https://learn.microsoft.com/en-us/windows/win32/sync/mutex-objects
 - ntsync driver: https://docs.kernel.org/userspace-api/ntsync.html
+- How the NT kernel does it, in ReactOS: `KiSatisfyMutantWait` (ownership recorded in the thread's mutant list),
+  https://github.com/reactos/reactos/blob/master/ntoskrnl/include/internal/ke_x.h; `KeRundownThread` (the list
+  abandoned at thread death), https://github.com/reactos/reactos/blob/master/ntoskrnl/ke/thrdobj.c;
+  `NtWaitForMultipleObjects` (the wait references the objects), https://github.com/reactos/reactos/blob/master/ntoskrnl/ob/obwait.c
