@@ -20,7 +20,8 @@ server's descriptor. When a thread dies, `abandon_inproc_mutexes()` sends `NTSYN
 on that list and only to those. The kernel object is still alive through the waiter's descriptor and still
 records the dead thread as its owner, but no kill reaches it, so the waiter never wakes. Windows keeps the
 mutants a thread owns on the thread object and abandons them whatever handles exist; so does Wine's server-side
-mutex without ntsync.
+mutex without ntsync or fsync. Proton's fsync fallback shares this bookkeeping and has the same gap; the patch's
+ntsync-only branches do not cover it.
 
 Wine's own test covers this: the end of `test_mutex()` in `dlls/kernel32/tests/sync.c` closes the mutex handle,
 terminates the owner and expects the waiter to report `WAIT_ABANDONED` within a second. With `/dev/ntsync`:
@@ -43,8 +44,9 @@ path is unchanged.
 
 `mutex_abandon.exe close` ([`repro/`](../repro)): a thread owns a mutex and blocks, a second thread waits on it,
 the handle is closed, the owner is killed with `TerminateThread()`; the waiter must get `WAIT_ABANDONED`. It
-needs `/dev/ntsync` in use (Linux 6.14 or later; with `PROTON_NO_NTSYNC=1` the server-side mutexes are used and
-the bug does not occur).
+needs `/dev/ntsync` in use (Linux 6.14 or later). Under the `proton` script `PROTON_NO_NTSYNC=1` alone falls back to
+fsync, which has the same gap; with `PROTON_NO_NTSYNC=1 PROTON_NO_FSYNC=1` the server-side mutexes are used and the
+bug does not occur.
 
 | | `close` |
 |---|---|

@@ -47,8 +47,10 @@ $T/files/bin/wine mutex_abandon.exe close 5
 where `T` is the tool's directory. On Windows, run the same executables from a command prompt. The expected results,
 on Windows and on a patched Wine, are 0 stale alerts and 0 early returns from the probe, 0 spurious returns from
 `stale_wake`, and `0 failed step(s)` with `returned 0x80 (abandoned)` lines from `mutex_abandon` in all three modes.
-`mutex_abandon` needs ntsync to show the Wine bug (`/dev/ntsync`, Linux 6.14 or later); with `PROTON_NO_NTSYNC=1`
-the server-side mutexes are used and the bug does not occur.
+`mutex_abandon` needs ntsync to show the Wine bug (`/dev/ntsync`, Linux 6.14 or later). Proton's fsync fallback has the
+same gap, so under the `proton` script, which sets `WINEFSYNC=1`, `PROTON_NO_NTSYNC=1` alone only moves the hang to
+fsync; with `PROTON_NO_NTSYNC=1 PROTON_NO_FSYNC=1` the server-side mutexes are used and the bug does not occur. The
+standalone `files/bin/wine` runs above use fsync only if `WINEFSYNC=1` is set.
 
 `inproc_cache_probe` must end with `waited on all 5000 events: OK`, on Windows and on Wine. Releases `-1` and
 `-2` of this repository abort it at the wait on the handle with index 3276, with
