@@ -6,7 +6,7 @@
 | Patch pages | [patch 4](patches/ntsync-mutex-owned-after-close.md) (`wineserver` only) and [patch 5](patches/ntsync-mutex-in-use-after-close.md) (the wait-all case, with the protocol change): the commit, the patch file, what each needs and how to check it |
 | Upstream | Wine bug [60417](https://bugs.winehq.org/show_bug.cgi?id=60417) (wineserver), filed 2026-10-01, UNCONFIRMED, no reply yet |
 | Seen as | the two long-standing `kernel32:sync` `test_mutex` failures when `/dev/ntsync` is in use; a program that relies on `WAIT_ABANDONED` to recover from a dead thread hangs instead |
-| Affects | Wine and Proton with ntsync (Linux 6.14 and later); the server-side mutexes used without ntsync are fine |
+| Affects | Wine and Proton with ntsync (Linux 6.14 and later), and Proton's fsync fallback, which shares the bookkeeping and is not covered by these patches; the server-side mutexes used without ntsync and fsync (`PROTON_NO_NTSYNC=1 PROTON_NO_FSYNC=1` under Proton) are fine |
 | Windows | abandons the mutex, measured on Windows 11 with [`repro/mutex_abandon.c`](repro/mutex_abandon.c) |
 
 ## Summary
@@ -14,7 +14,7 @@
 With in-process synchronization on `/dev/ntsync`, a thread that dies while owning a mutex does not abandon it if
 the process has already closed its handles to the mutex, even though another thread is still waiting on it. The
 waiter blocks forever instead of returning `WAIT_ABANDONED`. Windows returns `WAIT_ABANDONED`, and so does Wine's
-server-side implementation without ntsync. Wine's own test suite covers this and fails. The bug is in
+server-side implementation without ntsync or fsync. Wine's own test suite covers this and fails. The bug is in
 `wineserver`'s bookkeeping, not in either architecture's `ntdll`; it was found while running `kernel32:sync` to
 check the [stale thread alert](stale-thread-alert.md) patches and is otherwise unrelated to them.
 
@@ -34,8 +34,10 @@ sync.c:420: Test failed: got 0x102
 ```
 
 (`0x102` is `WAIT_TIMEOUT`; line numbers as of Wine master on 2026-09-30, 393 and 397 in Proton Experimental's
-tree: the wait for the waiter to signal, and the wait for the waiter thread to exit.) Without `/dev/ntsync`, or
-with `PROTON_NO_NTSYNC=1`, the test passes. The same test binary passes on Windows 11. Keeping the mutex handle open
+tree: the wait for the waiter to signal, and the wait for the waiter thread to exit.) On the server-side mutexes
+the test passes; under the `proton` script those need `PROTON_NO_NTSYNC=1 PROTON_NO_FSYNC=1`, because `PROTON_NO_NTSYNC=1`
+alone, or a kernel without `/dev/ntsync`, falls back to fsync, which hangs the same way (checked with the reproducer
+below on release `-3`, 2026-10-12). The same test binary passes on Windows 11. Keeping the mutex handle open
 until after `TerminateThread()` makes the ntsync case work too, so the failure is confined to closed handles.
 
 ## Cause
@@ -120,6 +122,8 @@ other issue, on the same host, with the same binaries.
 |---|---|---|---|
 | Stock Proton Experimental 20260924, 64- and 32-bit programs | never returns (steps time out at 5 s) | `WAIT_ABANDONED` at once | never returns |
 | Stock Proton Experimental 20261001, 64-bit program | never returns (6 failed steps in 3 iterations) | not run | not run |
+| Release `-3` on the fsync fallback (`PROTON_NO_NTSYNC=1 WINEFSYNC=1`), 64-bit program | never returns (4 failed steps in 2 iterations) | not run | never returns (4 failed steps in 2 iterations) |
+| Release `-3` on the server-side mutexes (`PROTON_NO_NTSYNC=1`, no `WINEFSYNC`), 64-bit program | `WAIT_ABANDONED` within 0.5 ms, 2 of 2 | not run | B gets `WAIT_ABANDONED_0` as soon as its event is set, 2 of 2 |
 | Patch 4 only | `WAIT_ABANDONED` within 0.1 ms, 25 of 25 iterations | at once | never returns (the mutex was unowned when forgotten) |
 | Patches 4–5 on 20260924, 64- and 32-bit programs | `WAIT_ABANDONED` within 0.1 ms, 30 of 30 per architecture | at once | B gets `WAIT_ABANDONED_0` as soon as its event is set, 30 of 30 per architecture |
 | Patches 4–5 on 20261001, 64- and 32-bit programs | `WAIT_ABANDONED`, 10 of 10 per architecture | at once, 10 of 10 | B gets `WAIT_ABANDONED_0`, 10 of 10 per architecture |
