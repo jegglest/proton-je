@@ -2,11 +2,11 @@
 
 | | |
 |---|---|
-| Commit | [`7562ac9bc0`](https://github.com/jegglest/wine/commit/7562ac9bc03a21d009a64f9094d00bb6439be1a3) `server: Keep an owned ntsync mutex reachable after its object is destroyed.` ([patch file](https://github.com/jegglest/wine/commit/7562ac9bc03a21d009a64f9094d00bb6439be1a3.patch)) |
+| Commit | [`15caa43f7e`](https://github.com/jegglest/wine/commit/15caa43f7eba882dd963dfd7cda2f695efd2d0fe) `server: Keep an owned ntsync mutex reachable after its object is destroyed.` ([patch file](https://github.com/jegglest/wine/commit/15caa43f7eba882dd963dfd7cda2f695efd2d0fe.patch)) |
 | Changes | `server/inproc_sync.c`, 49 lines added and 1 removed: a list of orphaned mutexes, used by `inproc_sync_destroy()` and `abandon_inproc_mutexes()` |
 | Fixes | with `/dev/ntsync`, a thread that dies while owning a mutex whose handles its process has already closed never abandons it, and a thread waiting on the mutex blocks forever instead of getting `WAIT_ABANDONED`. The two long-standing `kernel32:sync` `test_mutex` failures under ntsync |
 | Needs | nothing. `wineserver` only, no protocol change: replacing `wineserver` alone is enough |
-| Applies to | Valve's Wine [`6d211aab`](https://github.com/ValveSoftware/wine/commit/6d211aabd1d325c9990a5fd7a81b9db37caae12d) and wine-cachyos as of 2026-10-04 with `git am`, no conflicts. Wine master as of 2026-10-09: the hunks collide with Proton's fsync fallback, which sits on the same lines of `inproc_sync_destroy()` and `abandon_inproc_mutexes()` in Valve's tree and is absent upstream; the logic ports unchanged |
+| Applies to | Valve's Wine [`6d211aab`](https://github.com/ValveSoftware/wine/commit/6d211aabd1d325c9990a5fd7a81b9db37caae12d) and [`bc8d17c6`](https://github.com/ValveSoftware/wine/commit/bc8d17c6914a2285f397b71aa8bd73cd90377230) and wine-cachyos as of 2026-10-04 with `git am`, no conflicts. Wine master as of 2026-10-09: the hunks collide with Proton's fsync fallback, which sits on the same lines of `inproc_sync_destroy()` and `abandon_inproc_mutexes()` in Valve's tree and is absent upstream; the logic ports unchanged |
 | Upstream | Wine bug [60417](https://bugs.winehq.org/show_bug.cgi?id=60417) (wineserver), filed 2026-10-01, UNCONFIRMED, no reply as of 2026-10-09 |
 | Windows | abandons the mutex: `WAIT_ABANDONED` 0.1 to 0.7 ms after `TerminateThread()`, 5 of 5 runs of [`repro/mutex_abandon.c`](../repro/mutex_abandon.c) |
 | Full story | [ntsync mutexes are never abandoned once their handles are closed](../ntsync-mutex-abandonment.md) |

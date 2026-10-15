@@ -2,11 +2,11 @@
 
 | | |
 |---|---|
-| Commit | [`f81587bf7d`](https://github.com/jegglest/wine/commit/f81587bf7d9fba5a0271b73d883942a67d7d4f7b) `ntdll: Don't touch a RtlWaitOnAddress() waiter's entry after clearing its address.` ([patch file](https://github.com/jegglest/wine/commit/f81587bf7d9fba5a0271b73d883942a67d7d4f7b.patch)) |
+| Commit | [`5e62c3fcac`](https://github.com/jegglest/wine/commit/5e62c3fcacafb6d6eab079106a7b34e6406e7b00) `ntdll: Don't touch a RtlWaitOnAddress() waiter's entry after clearing its address.` ([patch file](https://github.com/jegglest/wine/commit/5e62c3fcacafb6d6eab079106a7b34e6406e7b00.patch)) |
 | Changes | `dlls/ntdll/sync.c`, 12 lines added and 5 removed, in `RtlWaitOnAddress()`, `RtlWakeAddressSingle()` and `RtlWakeAddressAll()` |
 | Fixes | memory corruption: a waker can still be reading and writing a waiter's stack entry after the waiter has returned and its caller has reused that stack |
 | Needs | nothing; it stands on its own. [Patch 2](waitonaddress-stale-alert.md) is written on top of it |
-| Applies to | Valve's Wine [`6d211aab`](https://github.com/ValveSoftware/wine/commit/6d211aabd1d325c9990a5fd7a81b9db37caae12d) (Proton Experimental 20261001), Wine master as of 2026-10-09 (`a15ee2ccf2`) and wine-cachyos `cachyos_11.0_20261001/main` as of 2026-10-04 (`2ce6b44caa`), with `git am`, no conflicts |
+| Applies to | Valve's Wine [`6d211aab`](https://github.com/ValveSoftware/wine/commit/6d211aabd1d325c9990a5fd7a81b9db37caae12d) and [`bc8d17c6`](https://github.com/ValveSoftware/wine/commit/bc8d17c6914a2285f397b71aa8bd73cd90377230) (Proton Experimental 20261001 and 20261008), Wine master as of 2026-10-09 (`a15ee2ccf2`) and wine-cachyos `cachyos_11.0_20261001/main` as of 2026-10-04 (`2ce6b44caa`), with `git am`, no conflicts |
 | Upstream | Wine bug [60397](https://bugs.winehq.org/show_bug.cgi?id=60397), point 1 of the report; UNCONFIRMED. The same change is pending independently as [wine-cachyos PR #34](https://github.com/CachyOS/wine-cachyos/pull/34) (2026-10-07, open) |
 | Windows | no equivalent code path: its wait block is handed from waiter to waker with a flag exchange, not through a list entry the waker keeps touching |
 | Full story | [Stale thread alerts from `RtlWaitOnAddress()`](../stale-thread-alert.md), section "The Wine side" |
