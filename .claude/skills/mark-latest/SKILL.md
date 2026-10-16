@@ -14,8 +14,9 @@ only releases that are not pre-releases, and the README points people at the new
 
 ```bash
 tag=proton-je-11.0-20261008-1
-gh release view "$tag" --repo jegglest/proton-je --json isDraft,isPrerelease,isLatest,assets \
-    --jq '{isDraft,isPrerelease,isLatest,assets:[.assets[].name]}'
+gh release view "$tag" --repo jegglest/proton-je --json isDraft,isPrerelease,assets \
+    --jq '{isDraft,isPrerelease,assets:[.assets[].name]}'
+gh release list --repo jegglest/proton-je                        # "Latest" marks GitHub's current latest release
 cat ~/.local/share/Steam/compatibilitytools.d/$tag/version      # the installed copy, "<epoch> <tag>"
 ```
 
