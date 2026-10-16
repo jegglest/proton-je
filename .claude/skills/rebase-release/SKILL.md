@@ -118,7 +118,7 @@ line, one paragraph on what it is (base, same patches as the previous release or
 ```bash
 git tag -a $tag -F msg.txt && git push origin $tag
 gh run list --limit 1            # the Build workflow for the tag
-gh run watch <run id> --exit-status --interval 60   # in the background; 25-30 min with a warm ccache, 2 h cold
+gh run watch <run id> --exit-status --interval 60   # in the background; 25-45 min with a warm ccache (the Build step alone about 30), 2 h cold
 ```
 
 A failed run publishes nothing: `gh run view <id> --log-failed`, fix on the branch, delete the tag locally and
