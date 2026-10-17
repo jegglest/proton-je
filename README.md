@@ -122,8 +122,24 @@ it. Anti-Lag 1, the driver-only mode of the Windows driver, has no counterpart o
 Installing a build
 ------------------
 
-Download `proton-je-<version>.tar.xz` from [Releases](https://github.com/jegglest/proton-je/releases) and extract it
-into `~/.steam/root/compatibilitytools.d/` (for Flatpak Steam,
+[`install-latest.sh`](install-latest.sh) downloads the newest release, checks its sha512 sum and installs it
+into Steam's `compatibilitytools.d` as one tool named `Proton-JE Latest`, the way ProtonPlus installs a "Latest"
+runner: a game, or Steam's default, that is set to it keeps working across updates, and running the script
+again replaces the tool in place. It needs curl, tar, xz and sha512sum and finds native or Flatpak Steam on
+its own:
+
+```bash
+curl -fsSLO https://raw.githubusercontent.com/jegglest/proton-je/HEAD/install-latest.sh
+bash install-latest.sh
+```
+
+`--tag proton-je-<version>` installs a particular release under the same name, `--dir` and `--name` change
+the directory and the tool name, `--force` reinstalls; `--help` lists them. Restart Steam, then pick
+`Proton-JE Latest` under Settings > Compatibility or under the game's Properties > Compatibility.
+
+To install a release by hand, side by side with others, download `proton-je-<version>.tar.xz` from
+[Releases](https://github.com/jegglest/proton-je/releases) and extract it into
+`~/.steam/root/compatibilitytools.d/` (for Flatpak Steam,
 `~/.var/app/com.valvesoftware.Steam/data/Steam/compatibilitytools.d/`):
 
 ```bash
