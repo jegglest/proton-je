@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Commit | [`5e62c3fcac`](https://github.com/jegglest/wine/commit/5e62c3fcacafb6d6eab079106a7b34e6406e7b00) `ntdll: Don't touch a RtlWaitOnAddress() waiter's entry after clearing its address.` ([patch file](https://github.com/jegglest/wine/commit/5e62c3fcacafb6d6eab079106a7b34e6406e7b00.patch)) |
+| Commit | [`waitonaddress-use-after-return`](https://github.com/jegglest/wine/commit/waitonaddress-use-after-return) `ntdll: Don't touch a RtlWaitOnAddress() waiter's entry after clearing its address.` ([patch file](https://github.com/jegglest/wine/commit/waitonaddress-use-after-return.patch)); the tag moves to the rebased commit with every new Proton Experimental |
 | Changes | `dlls/ntdll/sync.c`, 12 lines added and 5 removed, in `RtlWaitOnAddress()`, `RtlWakeAddressSingle()` and `RtlWakeAddressAll()` |
 | Fixes | memory corruption: a waker can still be reading and writing a waiter's stack entry after the waiter has returned and its caller has reused that stack |
 | Needs | nothing; it stands on its own. [Patch 2](waitonaddress-stale-alert.md) is written on top of it |
