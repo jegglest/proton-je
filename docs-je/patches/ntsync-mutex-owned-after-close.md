@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Commit | [`15caa43f7e`](https://github.com/jegglest/wine/commit/15caa43f7eba882dd963dfd7cda2f695efd2d0fe) `server: Keep an owned ntsync mutex reachable after its object is destroyed.` ([patch file](https://github.com/jegglest/wine/commit/15caa43f7eba882dd963dfd7cda2f695efd2d0fe.patch)) |
+| Commit | [`ntsync-mutex-owned-after-close`](https://github.com/jegglest/wine/commit/ntsync-mutex-owned-after-close) `server: Keep an owned ntsync mutex reachable after its object is destroyed.` ([patch file](https://github.com/jegglest/wine/commit/ntsync-mutex-owned-after-close.patch)); the tag moves to the rebased commit with every new Proton Experimental |
 | Changes | `server/inproc_sync.c`, 49 lines added and 1 removed: a list of orphaned mutexes, used by `inproc_sync_destroy()` and `abandon_inproc_mutexes()` |
 | Fixes | with `/dev/ntsync`, a thread that dies while owning a mutex whose handles its process has already closed never abandons it, and a thread waiting on the mutex blocks forever instead of getting `WAIT_ABANDONED`. The two long-standing `kernel32:sync` `test_mutex` failures under ntsync |
 | Needs | nothing. `wineserver` only, no protocol change: replacing `wineserver` alone is enough |

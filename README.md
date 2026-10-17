@@ -38,7 +38,7 @@ upstream:
 
 All five apply with `git am` to Valve's Wine for this Experimental and to wine-cachyos; 1 to 3 also to Wine
 master, 4 and 5 need a hand port there (checked 2026-10-09, details on the pages). The
-[compare view](https://github.com/jegglest/wine/compare/bc8d17c6914...883fdb60ce1) shows exactly these commits;
+[compare view](https://github.com/jegglest/wine/compare/experimental_11.0...ntsync-mutex-in-use-after-close) shows exactly these commits;
 `.patch` appended to it, or to any commit link, makes GitHub generate the series or that one commit as a
 `git am` file. No patch files are kept here: the commits are the patches.
 

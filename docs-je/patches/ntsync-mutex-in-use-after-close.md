@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Commit | [`883fdb60ce`](https://github.com/jegglest/wine/commit/883fdb60ce17947ec8d05f1bc9355009b60b286f) `server: Keep an in-process mutex that a process closed while still using it.` ([patch file](https://github.com/jegglest/wine/commit/883fdb60ce17947ec8d05f1bc9355009b60b286f.patch)) |
+| Commit | [`ntsync-mutex-in-use-after-close`](https://github.com/jegglest/wine/commit/ntsync-mutex-in-use-after-close) `server: Keep an in-process mutex that a process closed while still using it.` ([patch file](https://github.com/jegglest/wine/commit/ntsync-mutex-in-use-after-close.patch)); the tag moves to the rebased commit with every new Proton Experimental |
 | Changes | 8 files, 186 lines added and 18 removed: `server/inproc_sync.c`, `server/handle.c`, `server/process.c`, `server/object.h`, `server/protocol.def` (a field added to `close_handle` and `dup_handle` and one new request, `release_inproc_sync`, so the server protocol version changes), `dlls/ntdll/unix/sync.c`, `dlls/ntdll/unix/server.c`, `dlls/ntdll/unix/unix_private.h` |
 | Fixes | the case patch 4 leaves open: a mutex that is unowned when its last handle is closed, with a wait-all still pending on it, can be acquired later; if that thread then dies the mutex is again not abandoned and a second waiter blocks forever |
 | Needs | [patch 4](ntsync-mutex-owned-after-close.md). Because of the protocol change, `wineserver` and both unix-side `ntdll.so` (64- and 32-bit) must come from the same tree: automatic in a full build, and the reason a build that only replaces files must replace all three (Space Marine 2 starts through a 32-bit launcher stub on every launch) |
