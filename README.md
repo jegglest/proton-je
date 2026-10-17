@@ -31,13 +31,14 @@ upstream:
 
 | Patch | What it does | Upstream |
 |---|---|---|
-| [1](docs-je/patches/waitonaddress-use-after-return.md) | `RtlWakeAddressSingle()` and `RtlWakeAddressAll()` no longer touch a waiter's stack entry after clearing its address: a use-after-return on the path every lock and condition-variable wake takes | Wine bug [60397](https://bugs.winehq.org/show_bug.cgi?id=60397), point 1; the same change is pending as [wine-cachyos PR #34](https://github.com/CachyOS/wine-cachyos/pull/34) |
+| [1](docs-je/patches/waitonaddress-use-after-return.md) | `RtlWakeAddressSingle()` and `RtlWakeAddressAll()` no longer touch a waiter's stack entry after clearing its address: a use-after-return on the path every lock and condition-variable wake takes | Wine bug [60397](https://bugs.winehq.org/show_bug.cgi?id=60397), point 1. Fixed in Wine on 2026-10-14 by [`81e52628`](https://gitlab.winehq.org/wine/wine/-/commit/81e52628b25ac173d04796e8a9b9cda637d3e233) ([MR 12315](https://gitlab.winehq.org/wine/wine/-/merge_requests/12315), Wine 11.20), the same change; kept here until Valve's Wine has it. Also pending as [wine-cachyos PR #34](https://github.com/CachyOS/wine-cachyos/pull/34) |
 | [2 and 3](docs-je/patches/waitonaddress-stale-alert.md) | a `RtlWaitOnAddress()` waiter that times out just as a waker dequeues it takes the alert that is on its way, as Windows does, instead of leaving it to end the thread's next wait early; plus a conformance test. This is the Space Marine 2 crash | Wine bug 60397, points 2 and 3 |
 | [4](docs-je/patches/ntsync-mutex-owned-after-close.md) | `wineserver` keeps an ntsync mutex that is owned when its last handle is closed, so that its owner's death still abandons it; the two `kernel32:sync` `test_mutex` failures | Wine bug [60417](https://bugs.winehq.org/show_bug.cgi?id=60417) |
 | [5](docs-je/patches/ntsync-mutex-in-use-after-close.md) | the remaining case, a mutex closed while a wait-all of the same process is still pending on it; a new server request, so the protocol version changes | Wine bug 60417, second part |
 
-All five apply with `git am` to Valve's Wine for this Experimental and to wine-cachyos; 1 to 3 also to Wine
-master, 4 and 5 need a hand port there (checked 2026-10-09, details on the pages). The
+All five apply with `git am` to Valve's Wine for this Experimental and to wine-cachyos. Wine master has had 1 since
+`81e52628` (2026-10-14, Wine 11.20); 2 and 3 apply there, 4 and 5 need a hand port (checked 2026-10-16, details on
+the pages). The
 [compare view](https://github.com/jegglest/wine/compare/experimental_11.0...ntsync-mutex-in-use-after-close) shows exactly these commits;
 `.patch` appended to it, or to any commit link, makes GitHub generate the series or that one commit as a
 `git am` file. No patch files are kept here: the commits are the patches.
