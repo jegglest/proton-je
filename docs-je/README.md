@@ -27,9 +27,10 @@ clone does the same). No patch files are kept in this repository: the commits ar
 are tags on the fork, named after the pages, that move to the rebased commits with every new Proton
 Experimental; the compare view's base is the fork's mirror of Valve's `experimental_11.0`. Patches 2 and 5
 depend on 1 and 4 respectively; 1, 3 and 4 stand alone. Checked on 2026-10-09: all five apply with `git am` to
-Valve's Wine `6d211aab` (and, rebased on 2026-10-14, to `bc8d17c6` of Experimental 20261008) and to wine-cachyos
-(`cachyos_11.0_20261001/main` of 2026-10-04); 1 to 3 also to Wine master, while 4 and 5 need a hand port there
-because Proton's fsync fallback sits on the lines they change.
+Valve's Wine `6d211aab` (and, rebased on 2026-10-14 and 2026-10-16, to `bc8d17c6` of Experimental 20261008 and
+`7fc704ef` of Experimental 20261014) and to wine-cachyos (`cachyos_11.0_20261001/main` of 2026-10-04); 1 to 3
+also to Wine master, while 4 and 5 need a hand port there because Proton's fsync fallback sits on the lines they
+change.
 
 The investigation behind them, one page per bug, with the symptom, the cause, what Windows does, the full test
 results on Linux and on Windows, and the upstream history:
