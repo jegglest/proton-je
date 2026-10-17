@@ -49,17 +49,33 @@ conflict means a patch needs a port: resolve it the way the upstream submission 
 the attribution line of an imported commit), and say what changed in the release page (step 4) and in the
 range-diff summary of the docs commit.
 
+The docs link the five upstream patches through tags on the fork named after their pages, and their compare
+links start from the fork's `experimental_11.0`, so a rebase moves the tags instead of editing commit ids. Each
+tag's new commit is the one with the same subject in the rebased series:
+
+```bash
+for t in waitonaddress-use-after-return waitonaddress-stale-alert waitonaddress-stale-alert-test \
+         ntsync-mutex-owned-after-close ntsync-mutex-in-use-after-close; do
+  git tag -f $t $(git log -1 --format=%H -F --grep="$(git log -1 --format=%s $t)" $new_wine..je-11.0)
+done
+git rev-list --count $new_wine..ntsync-mutex-in-use-after-close    # 5: the tags sit on the first five commits
+```
+
 Keep the old head reachable, because the published release notes link every commit of it: one annotated tag
 per release built from it, named like that release (`git ls-remote --tags origin 'proton-je-*'` shows which
 exist): `git tag -a <release tag> $old_head -m "Wine of Proton-JE release <release tag>"`.
 
 Push, in this order (the mirror branch needs `--force-with-lease=experimental_11.0:<its old sha>` when Valve
-rewrote it):
+rewrote it; the patch tags moved, so they go with `--force`, and a clone that fetched them before has to fetch
+them with `--force` too):
 
 ```bash
 git push origin valve/experimental_11.0:refs/heads/experimental_11.0
-git push origin <the new tags>
+git push origin <the new release tags>
 git push --force-with-lease=je-11.0:$old_head origin je-11.0
+git push --force origin refs/tags/waitonaddress-use-after-return refs/tags/waitonaddress-stale-alert \
+    refs/tags/waitonaddress-stale-alert-test refs/tags/ntsync-mutex-owned-after-close \
+    refs/tags/ntsync-mutex-in-use-after-close
 ```
 
 ## 3. Rebase the Proton fork
@@ -75,7 +91,11 @@ old_proton=$(git rev-parse je-11.0)
 GIT_EDITOR=true git rebase --onto $new_base $old_base je-11.0
 ```
 
-Every commit that moves the `wine` gitlink conflicts (4 at the time of writing). Resolve each with
+If the first pick dies with `fatal: invalid commit position. commit-graph is likely corrupt` (git 2.56 on
+2026-10-16, with `git commit-graph verify` clean in both repositories), `git rebase --abort` and run the rebase,
+and every `--continue` below, as `git -c core.commitGraph=false rebase …`.
+
+Every commit that moves the `wine` gitlink conflicts (2 on 2026-10-16). Resolve each with
 `git update-index --cacheinfo 160000,<sha>,wine && GIT_EDITOR=true git rebase --continue`: the first one (the
 sync fixes) gets the last author-owned commit of the rebased Wine series,
 `git -C wine log -1 --format=%H --author='Jason Eggleston' $new_wine..je-11.0`; every later one gets the new
@@ -88,26 +108,22 @@ only `index`/`@@` offset lines; `git ls-tree HEAD wine` is the new Wine head; `g
 
 ## 4. Docs
 
-The docs name the base and link the upstream patches by commit id, so a rebase changes them. Map old ids to new
-ones with `paste <(git -C wine rev-list --reverse $old_wine..$old_head) <(git -C wine rev-list --reverse
-$new_wine..je-11.0)` and update, with `sed`:
+The docs name the base and record which Valve Wine the patches were checked against; the patch links are the
+tags moved in step 2 and need nothing. Update, with `sed`:
 
 - `README.md`, the `Base` row: Proton commit and link, Steam build name (`experimental-11.0-<YYYYMMDD>`), Wine
   commit and link.
-- The compare links `<old_wine, 11 chars>...<old upstream end, 11 chars>` in `README.md` and
-  `docs-je/README.md`, including the `.patch` one and the `git format-patch` range in the text.
-- The upstream commits, 40- and 10-character forms, in `docs-je/README.md` and `docs-je/patches/*.md`.
 - The `Applies to` rows of `docs-je/patches/*.md`: add the new Valve Wine commit (with its link); the dated
   "Checked on" sentence in `docs-je/README.md`.
 
 Leave history alone: results quoted on older builds, `docs-je/releases/`, `ntsync-mutex-abandonment.md`'s
-short id of the commit a test was built from. Afterwards `grep -rn '<old ids>' README.md docs-je` hits only
-those. A release that needs a word of its own (a conflict resolved, a fix) gets `docs-je/releases/<tag>.md`,
-which `release-notes.sh` prints into the release body.
+short id of the commit a test was built from. Afterwards `grep -rn '<old base ids>' README.md docs-je` hits only
+those and the `Applies to` and "Checked on" lines. A release that needs a word of its own (a conflict resolved, a
+fix) gets `docs-je/releases/<tag>.md`, which `release-notes.sh` prints into the release body.
 
 Commit as `Rebase onto Proton Experimental <YYYYMMDD>`: new Proton and Wine commits, that the Wine commits are
-unchanged as patches (or what changed), the gitlink, the docs, the tags left on the fork. Then
-`git push --force-with-lease=je-11.0:$old_proton origin je-11.0`.
+unchanged as patches (or what changed), the gitlink, the docs, the patch tags moved and the release tags left on
+the fork. Then `git push --force-with-lease=je-11.0:$old_proton origin je-11.0`.
 
 ## 5. Tag and build
 
