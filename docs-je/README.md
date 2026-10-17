@@ -13,7 +13,7 @@ patch file, what it fixes, what it needs, where it applies, how to check it and 
 
 | Patch | Page | Commit | Touches | Upstream |
 |---|---|---|---|---|
-| 1 | [The wakers must not touch a waiter's entry after clearing its address](patches/waitonaddress-use-after-return.md) | [`waitonaddress-use-after-return`](https://github.com/jegglest/wine/commit/waitonaddress-use-after-return) | `dlls/ntdll/sync.c` | Wine bug [60397](https://bugs.winehq.org/show_bug.cgi?id=60397), point 1; the same change is pending as [wine-cachyos PR #34](https://github.com/CachyOS/wine-cachyos/pull/34) |
+| 1 | [The wakers must not touch a waiter's entry after clearing its address](patches/waitonaddress-use-after-return.md) | [`waitonaddress-use-after-return`](https://github.com/jegglest/wine/commit/waitonaddress-use-after-return) | `dlls/ntdll/sync.c` | Wine bug [60397](https://bugs.winehq.org/show_bug.cgi?id=60397), point 1. Fixed in Wine on 2026-10-14 by [`81e52628`](https://gitlab.winehq.org/wine/wine/-/commit/81e52628b25ac173d04796e8a9b9cda637d3e233) ([MR 12315](https://gitlab.winehq.org/wine/wine/-/merge_requests/12315), Wine 11.20), the same change; kept here until Valve's Wine has it. Also pending as [wine-cachyos PR #34](https://github.com/CachyOS/wine-cachyos/pull/34) |
 | 2 and 3 | [Take the in-flight alert when a wait times out after being dequeued](patches/waitonaddress-stale-alert.md), with its conformance test | [`waitonaddress-stale-alert`](https://github.com/jegglest/wine/commit/waitonaddress-stale-alert), [`waitonaddress-stale-alert-test`](https://github.com/jegglest/wine/commit/waitonaddress-stale-alert-test) | `dlls/ntdll/sync.c`, `dlls/ntdll/tests/sync.c` | Wine bug 60397, points 2 and 3 |
 | 4 | [Keep an owned ntsync mutex reachable after its server object is destroyed](patches/ntsync-mutex-owned-after-close.md) | [`ntsync-mutex-owned-after-close`](https://github.com/jegglest/wine/commit/ntsync-mutex-owned-after-close) | `server/inproc_sync.c` | Wine bug [60417](https://bugs.winehq.org/show_bug.cgi?id=60417) |
 | 5 | [Keep an in-process mutex that a process closed while still using it](patches/ntsync-mutex-in-use-after-close.md) | [`ntsync-mutex-in-use-after-close`](https://github.com/jegglest/wine/commit/ntsync-mutex-in-use-after-close) | `server/`, `dlls/ntdll/unix/` (server protocol version bump) | Wine bug 60417, second part |
@@ -28,9 +28,10 @@ are tags on the fork, named after the pages, that move to the rebased commits wi
 Experimental; the compare view's base is the fork's mirror of Valve's `experimental_11.0`. Patches 2 and 5
 depend on 1 and 4 respectively; 1, 3 and 4 stand alone. Checked on 2026-10-09: all five apply with `git am` to
 Valve's Wine `6d211aab` (and, rebased on 2026-10-14 and 2026-10-16, to `bc8d17c6` of Experimental 20261008 and
-`7fc704ef` of Experimental 20261014) and to wine-cachyos (`cachyos_11.0_20261001/main` of 2026-10-04); 1 to 3
-also to Wine master, while 4 and 5 need a hand port there because Proton's fsync fallback sits on the lines they
-change.
+`7fc704ef` of Experimental 20261014) and to wine-cachyos (`cachyos_11.0_20261001/main` of 2026-10-04). On Wine
+master, checked 2026-10-16 on `7298a818` (Release 11.20): 1 is there since `81e52628` of 2026-10-14, 2 applies on
+top of it with `git am --3way` and 3 with `git am`, while 4 and 5 need a hand port because Proton's fsync fallback
+sits on the lines they change.
 
 The investigation behind them, one page per bug, with the symptom, the cause, what Windows does, the full test
 results on Linux and on Windows, and the upstream history:
