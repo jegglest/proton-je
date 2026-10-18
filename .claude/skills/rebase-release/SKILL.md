@@ -165,8 +165,9 @@ The 32-bit builds matter for the mutex and cache probes (the 32-bit unix `ntdll.
 output is spelled out in `docs-je/repro/README.md`.
 
 Install: `mv "$d/$tag" ~/.local/share/Steam/compatibilitytools.d/` (native Steam). If Steam is running
-(`pgrep -x steam`) it lists the tool after a restart. Do not touch `config.vdf` here: making the release
-Steam's default and GitHub's only non-prerelease is `/mark-latest`, once the build has been used.
+(`pgrep -x steam`) it lists the tool after a restart. Do not run `install-latest.sh` or touch `config.vdf`
+here: the `Proton-JE Latest` tool, Steam's default, follows GitHub's latest release and moves in
+`/mark-latest`, once the build has been used side by side under its tag name.
 
 ## Report
 
