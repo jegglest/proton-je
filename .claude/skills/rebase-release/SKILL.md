@@ -43,22 +43,23 @@ git diff --name-only $old_wine $new_wine | grep -Fxf /tmp/ours.txt     # files V
 git rebase --onto $new_wine $old_wine je-11.0
 ```
 
-Verify before anything is pushed: `git rev-list --count $new_wine..je-11.0` is the old count (31 at the time
+Verify before anything is pushed: `git rev-list --count $new_wine..je-11.0` is the old count (32 at the time
 of writing), and `git range-diff $old_wine..$old_head $new_wine..je-11.0` shows every commit as `=`. A
 conflict means a patch needs a port: resolve it the way the upstream submission would, keep the message (and
 the attribution line of an imported commit), and say what changed in the release page (step 4) and in the
 range-diff summary of the docs commit.
 
-The docs link the five upstream patches through tags on the fork named after their pages, and their compare
-links start from the fork's `experimental_11.0`, so a rebase moves the tags instead of editing commit ids. Each
-tag's new commit is the one with the same subject in the rebased series:
+The docs link the five upstream patches and the game workaround through tags on the fork named after their
+pages, and their compare links start from the fork's `experimental_11.0`, so a rebase moves the tags instead of
+editing commit ids. Each tag's new commit is the one with the same subject in the rebased series:
 
 ```bash
 for t in waitonaddress-use-after-return waitonaddress-stale-alert waitonaddress-stale-alert-test \
-         ntsync-mutex-owned-after-close ntsync-mutex-in-use-after-close; do
+         ntsync-mutex-owned-after-close ntsync-mutex-in-use-after-close helldivers2-cs-wake-guard; do
   git tag -f $t $(git log -1 --format=%H -F --grep="$(git log -1 --format=%s $t)" $new_wine..je-11.0)
 done
 git rev-list --count $new_wine..ntsync-mutex-in-use-after-close    # 5: the tags sit on the first five commits
+git rev-parse helldivers2-cs-wake-guard je-11.0                     # the same twice: the workaround is last
 ```
 
 Keep the old head reachable, because the published release notes link every commit of it: one annotated tag
@@ -75,7 +76,7 @@ git push origin <the new release tags>
 git push --force-with-lease=je-11.0:$old_head origin je-11.0
 git push --force origin refs/tags/waitonaddress-use-after-return refs/tags/waitonaddress-stale-alert \
     refs/tags/waitonaddress-stale-alert-test refs/tags/ntsync-mutex-owned-after-close \
-    refs/tags/ntsync-mutex-in-use-after-close
+    refs/tags/ntsync-mutex-in-use-after-close refs/tags/helldivers2-cs-wake-guard
 ```
 
 ## 3. Rebase the Proton fork
@@ -95,12 +96,14 @@ If the first pick dies with `fatal: invalid commit position. commit-graph is lik
 2026-10-16, with `git commit-graph verify` clean in both repositories), `git rebase --abort` and run the rebase,
 and every `--continue` below, as `git -c core.commitGraph=false rebase …`.
 
-Every commit that moves the `wine` gitlink conflicts (2 on 2026-10-16). Resolve each with
-`git update-index --cacheinfo 160000,<sha>,wine && GIT_EDITOR=true git rebase --continue`: the first one (the
-sync fixes) gets the last author-owned commit of the rebased Wine series,
-`git -C wine log -1 --format=%H --author='Jason Eggleston' $new_wine..je-11.0`; every later one gets the new
-Wine head, `git -C wine rev-parse je-11.0`. Any other conflict is Valve changing a file we change (the `proton`
-script): keep Valve's change and ours.
+Every commit that moves the `wine` gitlink conflicts (2 on 2026-10-16, 3 since the Helldivers 2 workaround).
+Resolve each with `git update-index --cacheinfo 160000,<sha>,wine && GIT_EDITOR=true git rebase --continue`,
+taking the commits from the tags moved in step 2: the first one (the sync fixes) gets
+`git -C wine rev-parse ntsync-mutex-in-use-after-close`; the second (the FSR 4 commits) gets the commit before
+the workaround, `git -C wine rev-parse helldivers2-cs-wake-guard~1`; the last one (the Helldivers 2 workaround)
+gets the new Wine head, `git -C wine rev-parse je-11.0`. The workaround's commit is the author's too, so "the
+author's last commit" no longer finds the sync fixes. Any other conflict is Valve changing a file we change (the
+`proton` script): keep Valve's change and ours.
 
 Verify: `diff <(git diff $old_base $old_proton -- . ':!wine') <(git diff $new_base HEAD -- . ':!wine')` shows
 only `index`/`@@` offset lines; `git ls-tree HEAD wine` is the new Wine head; `git submodule status` shows
@@ -158,6 +161,7 @@ T=$d/$tag; export WINEPREFIX=/tmp/je-test LD_LIBRARY_PATH=$T/files/lib64:$T/file
 $T/files/bin/wine mutex_abandon.exe close 3; $T/files/bin/wine mutex_abandon.exe waitall 3   # 0 failed steps, "abandoned" lines
 $T/files/bin/wine inproc_cache_probe.exe 5000                                                 # "waited on all 5000 events: OK"
 $T/files/bin/wine raced_wake_probe.exe 20000 3                                                # 0 stale alerts, 0 early returns
+WINE_CS_WAKE_GUARD=1 $T/files/bin/wine stack_cs_handoff.exe 200 200                            # "0 of 200 handoffs returned before the leave"
 $T/files/bin/wineserver -k
 ```
 

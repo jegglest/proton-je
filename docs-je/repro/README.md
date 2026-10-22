@@ -9,6 +9,8 @@ on Windows, so that Wine can be compared with it. The write-ups quote their resu
 | [`stale_wake.c`](stale_wake.c) | [Stale thread alerts](../stale-thread-alert.md) | Stress program with the game's pattern: workers take a tcmalloc-style spinlock polled with `WaitOnAddress(..., 0)` and then do one unlooped `SleepConditionVariableCS(INFINITE)` on a future that another thread completes. Counts waits that return while the future is still pending. |
 | [`mutex_abandon.c`](mutex_abandon.c) | [ntsync mutex abandonment](../ntsync-mutex-abandonment.md) | Timed version of the end of Wine's `kernel32:sync` `test_mutex()`, plus the wait-all corner case: a thread owning a mutex is killed with `TerminateThread()` after the mutex handle was closed, and a waiter must get `WAIT_ABANDONED`. |
 | [`amd_probe.c`](amd_probe.c) | [AMD Anti-Lag 2](../amd-anti-lag-2.md), [FSR 4 on RDNA4](../fsr4-rdna4.md) | Creates a D3D12 device and asks the `amdxc64` driver shim for what AMD's SDKs use: the Anti-Lag 2 interface (then the SDK's off, on and frame-marker calls), the `IAmdExtD3DFactory` interfaces FSR 4 queries for wave-matrix and FP8 support, and with `--ffx` the FSR 3.1 to FSR 4 provider upgrade itself. Prints one line per step and writes the same to `amd_probe_out.txt`. |
+| [`stack_cs_handoff.c`](stack_cs_handoff.c) | [Helldivers 2 renderer race](../helldivers2-renderer-race.md) | The game's handoff with the window held open: the main thread waits with `WaitOnAddress()` on a flag in an object on its stack that also holds a critical section; another thread enters the critical section, sets the flag, wakes it, stalls for a given time and only then leaves. Counts the waits that return before the leave has finished. Modes `stack` (as in the game), `heap` (the object on the heap) and `condvar` (`SleepConditionVariableCS()` with a third thread contending for the lock). |
+| [`cs_enter_leave_bench.c`](cs_enter_leave_bench.c) | [Helldivers 2 renderer race](../helldivers2-renderer-race.md) | Cost of the workaround: time per uncontended `EnterCriticalSection()`/`LeaveCriticalSection()` pair, and per `WaitOnAddress()`/`WakeByAddressSingle()` round trip while the waker holds a critical section. |
 | [`inproc_cache_probe.c`](inproc_cache_probe.c) | [ntsync mutex abandonment](../ntsync-mutex-abandonment.md), patch 5 | Creates 5000 events (or the count given) and waits on each one once, so that `ntdll`'s in-process sync cache has to map a second block of entries. Checks the page-size slip of the first version of patch 5, which aborted releases `-1` and `-2` of this repository once a game had about 3300 handles open. Prints the highest handle value and one line per 1000 waits. |
 
 ## Building
@@ -21,6 +23,8 @@ x86_64-w64-mingw32-gcc -O2 -D__USE_MINGW_ANSI_STDIO=1 -o raced_wake_probe.exe ra
 x86_64-w64-mingw32-gcc -O2 -D__USE_MINGW_ANSI_STDIO=1 -o mutex_abandon.exe mutex_abandon.c
 x86_64-w64-mingw32-gcc -O1 -Wno-format -o amd_probe.exe amd_probe.c
 x86_64-w64-mingw32-gcc -O2 -o inproc_cache_probe.exe inproc_cache_probe.c
+x86_64-w64-mingw32-gcc -O2 -o stack_cs_handoff.exe stack_cs_handoff.c -lsynchronization
+x86_64-w64-mingw32-gcc -O2 -o cs_enter_leave_bench.exe cs_enter_leave_bench.c -lsynchronization
 ```
 
 The same commands with `i686-w64-mingw32-gcc` give 32-bit builds, which matter for the mutex issue: under Proton a
@@ -33,6 +37,8 @@ raced_wake_probe.exe [iterations per pass, default 20000] [seconds cap per pass,
 stale_wake.exe [seconds, default 30] [workers, default 8] [timed|poll|both, default both]
 mutex_abandon.exe [close|keep|waitall, default close] [iterations, default 1]
 inproc_cache_probe.exe [events, default 5000]
+stack_cs_handoff.exe [iterations, default 200] [stall in µs, default 200] [stack|heap|condvar, default stack]
+cs_enter_leave_bench.exe
 ```
 
 On Linux, run them with the Wine of the Proton build under test, for example from an extracted release:
@@ -56,6 +62,12 @@ standalone `files/bin/wine` runs above use fsync only if `WINEFSYNC=1` is set.
 `-2` of this repository abort it at the wait on the handle with index 3276, with
 ``virtual.c:408: anon_mmap_alloc: Assertion `!(size & host_page_mask)' failed.`` on stderr, and the process may then
 hang rather than exit; 3000 events pass there. It needs `/dev/ntsync` in use, like `mutex_abandon`.
+
+`stack_cs_handoff` is for the Helldivers 2 workaround, which is only on for `helldivers2.exe`, so run it with
+`WINE_CS_WAKE_GUARD=1` (and `=0` to compare). With the workaround on, `stack` mode must print
+`0 of 200 handoffs returned before the leave` and exit 0; without it, nearly all of them return early. `heap` mode
+returns early either way, and `condvar` mode never does. A stall of 100000 µs exceeds the workaround's limit:
+each wait then returns after about 30 ms, with one `still held by` error on stderr under `WINEDEBUG=err+sync`.
 
 `amd_probe.exe` needs vkd3d-proton's `d3d12.dll` and the FSR 4 DLL in the prefix, which only the tool's `proton`
 script sets up, so run it the way Steam would, with a scratch compatdata directory:

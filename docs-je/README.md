@@ -1,9 +1,9 @@
 # What this branch carries
 
-Two groups of changes, kept apart on purpose: patches meant for upstream Wine, which are mine, and changes
-carried from elsewhere that this repository does not try to upstream. Plus one thing that needed no patch at
-all. The test programs the write-ups quote are in [`repro/`](repro), with build and usage notes; the raw output
-of the Windows runs is in [`results/`](results).
+Three groups of changes, kept apart on purpose: patches meant for upstream Wine, which are mine, changes
+carried from elsewhere that this repository does not try to upstream, and game workarounds of the kind Valve's
+Wine carries. Plus one thing that needed no patch at all. The test programs the write-ups quote are in
+[`repro/`](repro), with build and usage notes; the raw output of the Windows runs is in [`results/`](results).
 
 ## Patches for upstream Wine
 
@@ -47,6 +47,16 @@ results on Linux and on Windows, and the upstream history:
 |---|---|---|---|
 | [FSR 4 renders the FSR 3 model on RDNA4](fsr4-rdna4.md): Proton Experimental's `amdxc64` stub cannot tell AMD's FSR 4 DLL what the GPU supports, so Valve enables the upgrade on RDNA3 only | 6 to 31 on the Wine branch (`amdxc64`, `win32u`), plus the `proton` script's handling of the FSR 4 DLL in this repository | Etaash Mathamsetty's work from [Proton-EM](https://github.com/Etaash-mathamsetty/Proton), as [Proton-GE](https://github.com/GloriousEggroll/proton-ge-custom) ships it, applied unchanged with its authorship | so that the builds are nicer to test with on RDNA4 cards. These commits are not mine, nothing here tries to upstream them, and `amdxc64` is a Proton-only module in any case; Valve's position is in Proton issue [#9908](https://github.com/ValveSoftware/Proton/issues/9908) |
 
+## Game workarounds
+
+Changes that work around a game's own bug, in the form Valve's Wine uses for them: on for one executable by
+default, with an environment variable to turn them off or on for any game, and `HACK:` in the commit subject. They
+go last on the branch.
+
+| What | Commit | How | Upstream |
+|---|---|---|---|
+| [Helldivers 2 closes with `STATUS_INVALID_HANDLE`](helldivers2-renderer-race.md): the game's D3D12 task dispatcher leaves a critical section in a stack frame its renderer thread has already left | commit 32, [`helldivers2-cs-wake-guard`](https://github.com/jegglest/wine/commit/helldivers2-cs-wake-guard) (`dlls/ntdll/sync.c`, `dlls/ntdll/loader.c`) | a thread woken from `WaitOnAddress()` by a thread holding a critical section on its stack waits until the waker is out of `LeaveCriticalSection()`; on for `helldivers2.exe`, `WINE_CS_WAKE_GUARD=0`/`1` to override. Valve's `WINE_ALERT_SIMULATE_SCHED_QUANTUM`, tried first, does nothing on Linux 7.2 and later | Valve's Wine takes these as pull requests ([ValveSoftware/wine#274](https://github.com/ValveSoftware/wine/pull/274)); not sent yet. The race itself is Arrowhead's to fix |
+
 ## Documented, nothing carried
 
 | What | What to do |
@@ -55,12 +65,14 @@ results on Linux and on Windows, and the upstream history:
 
 ## How the measurements were made
 
-Linux: Bazzite 44 (Fedora-based) with Linux 7.2.4 to 7.2.8, Ryzen 7 9800X3D, RX 9070 XT, `/dev/ntsync` in use.
+Linux: Bazzite 44 (Fedora-based) with Linux 7.2.4 to 7.2.9, Ryzen 7 9800X3D, RX 9070 XT, `/dev/ntsync` in use.
 Wine: Proton Experimental 11.0-20260924 and 11.0-20261001, stock and with the patches, the patched builds first
 as replaced `ntdll`/`wineserver` files in Steam's own build and now as the full builds in this repository's
 releases. Windows: Windows 11 Enterprise Evaluation 25H2, build 26200.9457, in a QEMU/KVM virtual machine on the
 same host, running the same executables. Wine's conformance tests (`ntdll:sync`, `kernel32:sync`) were built from
-the patched tree and run as the same binaries on both systems.
+the patched tree and run as the same binaries on both systems. The Helldivers 2 write-up reads the game's own
+crash dumps, from Proton Experimental 11.0-20261014 and `proton-je-11.0-20261014-1`, and its reproducer and
+conformance runs were made on Linux 7.2.9 only; nothing of it was run on Windows.
 
 ## Provenance
 
@@ -79,6 +91,7 @@ message with a line that names them and where the commits come from, as the FSR 
 submodule at the new head. For a patch meant for upstream, add a page under [`patches/`](patches) with the same
 rows and sections as the existing ones, one page per self-contained piece (a piece being what could be sent
 upstream on its own), and a row in the upstream table above; for a change carried from elsewhere, keep it out of
-that table and say where it comes from and why it is here. Then add the issue write-up with the same sections as
-the existing ones, its reproducer under [`repro/`](repro) if it has one, and a row in the top-level
-[README](../README.md).
+that table and say where it comes from and why it is here; for a game workaround, put the commit last on the
+branch with `HACK:` in its subject, as Valve does, which is how `.github/release-notes.sh` lists it apart, and add
+a row to the workarounds table above. Then add the issue write-up with the same sections as the existing ones,
+its reproducer under [`repro/`](repro) if it has one, and a row in the top-level [README](../README.md).

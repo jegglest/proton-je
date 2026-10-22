@@ -2,15 +2,16 @@ Proton-JE
 =========
 
 Valve's [Proton Experimental](https://github.com/ValveSoftware/Proton/tree/experimental_11.0), built the way
-Valve builds Proton, with two kinds of changes on top that are kept apart: the patches I am trying to get into
-upstream Wine, five commits for two Wine bugs, so that other people can test the fixes before they land; and,
+Valve builds Proton, with three kinds of changes on top that are kept apart: the patches I am trying to get into
+upstream Wine, five commits for two Wine bugs, so that other people can test the fixes before they land;
 carried as they are from Proton-EM and not for upstreaming, the FSR 4 driver-side commits that make FSR 4 work
-on RDNA4 cards. Nothing else is changed: no wine-staging, no other custom patches.
+on RDNA4 cards; and game workarounds of the kind Valve's Wine already carries, one so far, for a Helldivers 2
+crash. Nothing else is changed: no wine-staging, no other custom patches.
 
 | | |
 |---|---|
 | Base | Proton `experimental_11.0` commit [`7a94df49`](https://github.com/ValveSoftware/Proton/commit/7a94df49e4695fc101fd47d614166e69c43d9669) (Steam's `experimental-11.0-20261014`) with Wine [`7fc704ef`](https://github.com/ValveSoftware/wine/commit/7fc704ef49c50e9702c9983a5250d5738697bb04) |
-| Patches | the commits on branch [`je-11.0` of `jegglest/wine`](https://github.com/jegglest/wine/commits/je-11.0): Valve's Wine for this Experimental, then commits 1 to 5, my synchronization fixes meant for upstream Wine, then commits 6 to 31, Etaash Mathamsetty's FSR 4 work carried from Proton-EM; the `wine/` submodule points at it |
+| Patches | the commits on branch [`je-11.0` of `jegglest/wine`](https://github.com/jegglest/wine/commits/je-11.0): Valve's Wine for this Experimental, then commits 1 to 5, my synchronization fixes meant for upstream Wine, then commits 6 to 31, Etaash Mathamsetty's FSR 4 work carried from Proton-EM, then commit 32, a Helldivers 2 workaround; the `wine/` submodule points at it |
 | Builds | [Releases](https://github.com/jegglest/proton-je/releases): `proton-je-<Proton version>-<n>.tar.xz`, built by [GitHub Actions](.github/workflows/build.yml) from the tagged commit. Use `proton-je-11.0-20261001-3` or later: `-1` and `-2` abort any game once it has about 3300 handles open at once ([why](docs-je/patches/ntsync-mutex-in-use-after-close.md#the-change)) |
 | Write-ups | [`docs-je/`](docs-je): one page per patch for upstream ([`docs-je/patches/`](docs-je/patches)) with the commit, the patch file and how to check it; the full investigation of each issue, with the test results on Linux and on Windows |
 | Discussion | Proton issue [#8072](https://github.com/ValveSoftware/Proton/issues/8072), Wine bugs [60397](https://bugs.winehq.org/show_bug.cgi?id=60397) and [60417](https://bugs.winehq.org/show_bug.cgi?id=60417); Proton issue [#9908](https://github.com/ValveSoftware/Proton/issues/9908) for FSR 4 |
@@ -18,8 +19,9 @@ on RDNA4 cards. Nothing else is changed: no wine-staging, no other custom patche
 What is carried
 ---------------
 
-Two groups, kept apart on purpose: my patches for upstream Wine, and Proton-EM's FSR 4 work carried as it is.
-[`docs-je/`](docs-je) has the full write-up of each issue, with the test programs and the Windows comparison.
+Three groups, kept apart on purpose: my patches for upstream Wine, Proton-EM's FSR 4 work carried as it is, and
+game workarounds in the form Valve's Wine uses for them. [`docs-je/`](docs-je) has the full write-up of each issue,
+with the test programs and the Windows comparison.
 
 ### For upstream Wine: commits 1 to 5
 
@@ -105,6 +107,22 @@ AMD wave-matrix intrinsics. Proton Experimental must be installed in Steam, whic
 placed in the tool's `contrib/` directory. On an RX 9070 XT the driver queries the FSR 4 DLL makes now come back
 with FP8 wave-matrix support, where Valve's stub refuses them, and Helldivers 2 offers FSR 4 where it offered
 FSR 3 before; the [write-up](docs-je/fsr4-rdna4.md) has the measurements.
+
+### A game workaround: commit 32
+
+**Helldivers 2 closes with `STATUS_INVALID_HANDLE`** (commit 32, [write-up](docs-je/helldivers2-renderer-race.md)).
+Since the game update of 2026-10-21 the game's `D3D12TaskDispatcherThread` can leave a critical section that
+lives in a stack frame its `renderer` thread has already left: the renderer hands the object to the dispatcher,
+is woken while the dispatcher still holds the lock, and returns before the dispatcher is out of
+`LeaveCriticalSection()`. The leave then reads the renderer's new stack contents as the lock, takes them for a
+waiting thread and a semaphore handle, and `ntdll` raises the non-continuable `STATUS_INVALID_HANDLE` that Windows
+raises for a bad handle there too; the game's crash reporter takes it from there. The race is the game's and the
+same in every Proton. Commit 32 closes the window: a thread woken from `WaitOnAddress()` by a thread that holds a
+critical section on the woken thread's stack waits, for at most about 30 ms, until the waker is out of
+`LeaveCriticalSection()` on it. It is on for `helldivers2.exe` only; `WINE_CS_WAKE_GUARD=0` in the launch options
+turns it off, and `=1` turns it on for any game. Valve's `WINE_ALERT_SIMULATE_SCHED_QUANTUM`, a switch for races of
+this shape that Valve's Wine turns on for GTA V and several Idea Factory games, was tried first and does nothing
+on Linux 7.2 and later, where the zero-length sleep it relies on no longer sleeps.
 
 ### Not a patch
 
