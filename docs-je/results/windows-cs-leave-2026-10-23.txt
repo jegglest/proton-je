@@ -1,0 +1,18 @@
+Windows 11 run of repro/cs_leave_bad_semaphore.exe, 2026-10-23
+VM: win11-sync (a QEMU/KVM VM): Windows 11 Enterprise Evaluation 25H2, build 26200.9457, as in windows-2026-09-29.txt.
+Program: repro/cs_leave_bad_semaphore.c built with x86_64-w64-mingw32-gcc -O2, run twice from run_cs_leave_on_windows.cmd.
+Wine reference (Linux 7.2.9, same binary): Proton Experimental 11.0-20261014 and proton-je-11.0-20261014-2 raise 0xc0000008
+flags 0x1 in waiter and stale and return in stale-high; with Valve's RtlpUnWaitCriticalSection() fix (proton-je-11.0-20261014-3) all three return.
+
+
+Microsoft Windows [Version 10.0.26200.9457]
+=== cs_leave_bad_semaphore.exe ===
+Windows 10.0.26200
+waiter: before, with a waiter: LockCount -6 (0xfffffffa) RecursionCount 1 OwningThread 0000000000002d24 LockSemaphore ffffffffffffffff, LeaveCriticalSection() raised 0xc0000008, flags 0x81, after: LockCount -3 (0xfffffffd) RecursionCount 0 OwningThread 0000000000000000 LockSemaphore 00000000deadbeef,
+stale: before: LockCount 1073322168 (0x3ff998b8) RecursionCount 1 OwningThread 0000000000000000 LockSemaphore 0000000141735448, LeaveCriticalSection() returned, after: LockCount 1073322169 (0x3ff998b9) RecursionCount 0 OwningThread 0000000000000000 LockSemaphore 0000000141735448,
+stale-high: before: LockCount 1012922552 (0x3c5ff8b8) RecursionCount 168 OwningThread 0000000000000000 LockSemaphore 00007ff6c1d20010, LeaveCriticalSection() returned, after: LockCount 1012922552 (0x3c5ff8b8) RecursionCount 167 OwningThread 0000000000000000 LockSemaphore 00007ff6c1d20010,
+=== cs_leave_bad_semaphore.exe, second run ===
+Windows 10.0.26200
+waiter: before, with a waiter: LockCount -6 (0xfffffffa) RecursionCount 1 OwningThread 0000000000001d60 LockSemaphore ffffffffffffffff, LeaveCriticalSection() raised 0xc0000008, flags 0x81, after: LockCount -3 (0xfffffffd) RecursionCount 0 OwningThread 0000000000000000 LockSemaphore 00000000deadbeef,
+stale: before: LockCount 1073322168 (0x3ff998b8) RecursionCount 1 OwningThread 0000000000000000 LockSemaphore 0000000141735448, LeaveCriticalSection() returned, after: LockCount 1073322169 (0x3ff998b9) RecursionCount 0 OwningThread 0000000000000000 LockSemaphore 0000000141735448,
+stale-high: before: LockCount 1012922552 (0x3c5ff8b8) RecursionCount 168 OwningThread 0000000000000000 LockSemaphore 00007ff6c1d20010, LeaveCriticalSection() returned, after: LockCount 1012922552 (0x3c5ff8b8) RecursionCount 167 OwningThread 0000000000000000 LockSemaphore 00007ff6c1d20010,

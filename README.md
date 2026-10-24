@@ -116,11 +116,13 @@ in a stack frame its `renderer` thread has already left: the renderer hands the 
 while the dispatcher still holds the lock, and returns before the dispatcher is out of `LeaveCriticalSection()`.
 Under Wine the renderer's new stack contents then read as a lock with a waiting thread and a semaphore handle, the
 release of that handle fails, and `ntdll` raised a non-continuable `STATUS_INVALID_HANDLE` for it; the game's crash
-reporter takes it from there. Commit 32 is Paul Gofman's fix from Valve's bleeding-edge branch, carried as it is
-until it reaches Proton Experimental: `RtlpUnWaitCriticalSection()` no longer raises when that release fails.
-Release `-2` carried a workaround of its own instead, which kept the woken renderer waiting until the dispatcher was
-out of `LeaveCriticalSection()`. Valve's change is seven lines, covers every way into the exception and changes no
-timing, so `-3` replaces the workaround with it
+reporter takes it from there. Windows raises the same exception for a bad handle, but it encodes a critical
+section's state differently and reads the same stale bytes as a lock whose waiter was already woken, so its leave
+returns without trying. Commit 32 is Paul Gofman's fix from Valve's bleeding-edge branch, carried as it is until it
+reaches Proton Experimental: `RtlpUnWaitCriticalSection()` no longer raises when that release fails. Release `-2`
+carried a workaround of its own instead, which kept the woken renderer waiting until the dispatcher was out of
+`LeaveCriticalSection()`. Valve's change is seven lines, covers every way into the exception and changes no timing,
+so `-3` replaces the workaround with it
 ([why](docs-je/helldivers2-renderer-race.md#what-release--2-carried-instead)).
 
 ### Not a patch
