@@ -19,11 +19,17 @@ echo "\`$name\` is [Proton Experimental](https://github.com/ValveSoftware/Proton
 echo
 # A release that needs a word of its own has it in docs-je/releases/<build name>.md.
 if [ -f "docs-je/releases/$name.md" ]; then cat "docs-je/releases/$name.md"; echo; fi
-# Commits by the repository's author are the ones meant for upstream Wine; everything else is carried from elsewhere.
-upstream=() carried=()
+# Commits by the repository's author are the ones meant for upstream Wine, except the game workarounds, which have
+# HACK: in the subject as in Valve's Wine. Commits whose attribution line says they come from Valve's Wine are
+# Valve's own fixes, taken before they reach Proton Experimental; everything else is carried from Proton-EM.
+upstream=() carried=() hacks=() valve=()
 for commit in $(git -C wine rev-list --reverse "$wine_base..$wine_head"); do
-    line="- $(git -C wine log -1 --format=%s "$commit") ([\`${commit:0:10}\`](https://github.com/jegglest/wine/commit/$commit)), by $(git -C wine log -1 --format=%an "$commit")"
-    if [ "$(git -C wine log -1 --format=%an "$commit")" = "Jason Eggleston" ]; then upstream+=("$line"); else carried+=("$line"); fi
+    subject=$(git -C wine log -1 --format=%s "$commit") author=$(git -C wine log -1 --format=%an "$commit")
+    line="- $subject ([\`${commit:0:10}\`](https://github.com/jegglest/wine/commit/$commit)), by $author"
+    if [ "$author" = "Jason Eggleston" ]; then
+        if [[ $subject == *"HACK:"* ]]; then hacks+=("$line"); else upstream+=("$line"); fi
+    elif git -C wine log -1 --format=%B "$commit" | grep -q "commit from Valve's Wine"; then valve+=("$line")
+    else carried+=("$line"); fi
 done
 echo "**For upstream Wine**, one page per patch in [\`docs-je/patches/\`](https://github.com/$repo/tree/$name/docs-je/patches): stale thread alerts left by \`RtlWaitOnAddress()\` (Wine bug [60397](https://bugs.winehq.org/show_bug.cgi?id=60397), the Space Marine 2 crash in Proton issue [#8072](https://github.com/ValveSoftware/Proton/issues/8072)) and ntsync mutexes that are never abandoned (Wine bug [60417](https://bugs.winehq.org/show_bug.cgi?id=60417)):"
 echo
@@ -32,6 +38,18 @@ echo
 echo "**Carried from Proton-EM, not for upstream**: Etaash Mathamsetty's FSR 4 driver-side work, as Proton-GE ships it, which makes the FSR 3.1 to FSR 4 upgrade work on RDNA4 cards (Proton issue [#9908](https://github.com/ValveSoftware/Proton/issues/9908)); the FSR 4 DLL itself comes from Steam's Proton Experimental install, see the [README](https://github.com/$repo/tree/$name#what-is-carried):"
 echo
 printf '%s\n' "${carried[@]}"
+if [ ${#valve[@]} -gt 0 ]; then
+    echo
+    echo "**Taken early from Valve's Wine**: Valve's own fixes from its newer Proton branches, carried until they reach Proton Experimental (write-ups in [\`docs-je/\`](https://github.com/$repo/tree/$name/docs-je)):"
+    echo
+    printf '%s\n' "${valve[@]}"
+fi
+if [ ${#hacks[@]} -gt 0 ]; then
+    echo
+    echo "**Game workarounds**, in the form Valve's Wine uses for them, each on for one game only (write-ups in [\`docs-je/\`](https://github.com/$repo/tree/$name/docs-je)):"
+    echo
+    printf '%s\n' "${hacks[@]}"
+fi
 cat <<NOTES
 
 AMD Anti-Lag 2 needs no patch, only \`ENABLE_LAYER_MESA_ANTI_LAG=1\` in the game's launch options (README). See [\`docs-je/\`](https://github.com/$repo/tree/$name/docs-je) for the write-up of each issue, with the test results on Linux and on Windows.
