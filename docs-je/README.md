@@ -1,9 +1,10 @@
 # What this branch carries
 
-Two groups of changes, kept apart on purpose: patches meant for upstream Wine, which are mine, and changes
-carried from elsewhere that this repository does not try to upstream. Plus one thing that needed no patch at
-all. The test programs the write-ups quote are in [`repro/`](repro), with build and usage notes; the raw output
-of the Windows runs is in [`results/`](results).
+Three groups of changes, kept apart on purpose: patches meant for upstream Wine, which are mine, changes carried
+from elsewhere that this repository does not try to upstream, and Valve's own fixes from its newer Wine, taken
+before they reach Proton Experimental. Plus one thing that needed no patch at all. The test programs the write-ups
+quote are in [`repro/`](repro), with build and usage notes; the raw output of the Windows runs is in
+[`results/`](results).
 
 ## Patches for upstream Wine
 
@@ -47,6 +48,16 @@ results on Linux and on Windows, and the upstream history:
 |---|---|---|---|
 | [FSR 4 renders the FSR 3 model on RDNA4](fsr4-rdna4.md): Proton Experimental's `amdxc64` stub cannot tell AMD's FSR 4 DLL what the GPU supports, so Valve enables the upgrade on RDNA3 only | 6 to 31 on the Wine branch (`amdxc64`, `win32u`), plus the `proton` script's handling of the FSR 4 DLL in this repository | Etaash Mathamsetty's work from [Proton-EM](https://github.com/Etaash-mathamsetty/Proton), as [Proton-GE](https://github.com/GloriousEggroll/proton-ge-custom) ships it, applied unchanged with its authorship | so that the builds are nicer to test with on RDNA4 cards. These commits are not mine, nothing here tries to upstream them, and `amdxc64` is a Proton-only module in any case; Valve's position is in Proton issue [#9908](https://github.com/ValveSoftware/Proton/issues/9908) |
 
+## Taken early from Valve's Wine
+
+Valve's own fixes from its newer Proton branches, carried as they are, with their authorship and a line naming
+where they come from, until they reach Proton Experimental; the rebase onto that Experimental then drops them.
+They go last on the branch.
+
+| What | Commit | What it changes | Upstream |
+|---|---|---|---|
+| [Helldivers 2 closes with `STATUS_INVALID_HANDLE`](helldivers2-renderer-race.md): the game's D3D12 task dispatcher leaves a critical section in a stack frame its renderer thread has already left | commit 32, [`cs-unwait-ignore-errors`](https://github.com/jegglest/wine/commit/cs-unwait-ignore-errors) (`dlls/ntdll/sync.c`), Paul Gofman's "ntdll: Ignore semaphore errors in RtlpUnWaitCriticalSection()" from Valve's bleeding-edge branch | `LeaveCriticalSection()` no longer raises when releasing the semaphore of a critical section fails. Release `-2` carried a workaround of its own instead, which kept the woken thread waiting until the dispatcher was out of `LeaveCriticalSection()` | in Valve's bleeding-edge branch since 2026-10-20, not yet in Proton Experimental; upstream Wine still raises there |
+
 ## Documented, nothing carried
 
 | What | What to do |
@@ -55,12 +66,14 @@ results on Linux and on Windows, and the upstream history:
 
 ## How the measurements were made
 
-Linux: Bazzite 44 (Fedora-based) with Linux 7.2.4 to 7.2.8, Ryzen 7 9800X3D, RX 9070 XT, `/dev/ntsync` in use.
+Linux: Bazzite 44 (Fedora-based) with Linux 7.2.4 to 7.2.9, Ryzen 7 9800X3D, RX 9070 XT, `/dev/ntsync` in use.
 Wine: Proton Experimental 11.0-20260924 and 11.0-20261001, stock and with the patches, the patched builds first
 as replaced `ntdll`/`wineserver` files in Steam's own build and now as the full builds in this repository's
 releases. Windows: Windows 11 Enterprise Evaluation 25H2, build 26200.9457, in a QEMU/KVM virtual machine on the
 same host, running the same executables. Wine's conformance tests (`ntdll:sync`, `kernel32:sync`) were built from
-the patched tree and run as the same binaries on both systems.
+the patched tree and run as the same binaries on both systems. The Helldivers 2 write-up reads the game's own
+crash dumps, from Proton Experimental 11.0-20261014 and `proton-je-11.0-20261014-1`; its probe of
+`LeaveCriticalSection()` ran on Linux 7.2.9, and its run on the Windows virtual machine above is pending.
 
 ## Provenance
 
@@ -69,16 +82,21 @@ measurements, the in-game testing and the upstream reports are mine. Wine's cont
 LLM-generated code from merge requests, so upstream has the bug reports with the analysis and reproducers, and
 this repository carries the patches as a reference and so that people can test the fixes.
 The FSR 4 commits are Etaash Mathamsetty's work from Proton-EM, taken from Proton-GE's patch set as they are;
-only the `proton` script change and the write-up are mine, again with the LLM's help.
+only the `proton` script change and the write-up are mine, again with the LLM's help. Commit 32 is Paul Gofman's,
+from Valve's Wine.
 
 ## Adding a patch or an issue
 
 Add the commits to the `je-11.0` branch of [`jegglest/wine`](https://github.com/jegglest/wine) (or to this
 repository for a change outside Wine), keeping the original author and, for someone else's commits, ending each
 message with a line that names them and where the commits come from, as the FSR 4 commits do. Point the `wine/`
-submodule at the new head. For a patch meant for upstream, add a page under [`patches/`](patches) with the same
-rows and sections as the existing ones, one page per self-contained piece (a piece being what could be sent
-upstream on its own), and a row in the upstream table above; for a change carried from elsewhere, keep it out of
-that table and say where it comes from and why it is here. Then add the issue write-up with the same sections as
-the existing ones, its reproducer under [`repro/`](repro) if it has one, and a row in the top-level
+submodule at the new head. For a patch meant for upstream, add a page under [`patches/`](patches) with the same rows
+and sections as the existing ones, one page per self-contained piece (a piece being what could be sent upstream on
+its own), and a row in the upstream table above; for a change carried from elsewhere, keep it out of that table and
+say where it comes from and why it is here; for a fix taken early from Valve's Wine, put it last on the branch, keep
+its author and end its message with a line saying it is their commit from Valve's Wine and which branch it comes
+from, which is how `.github/release-notes.sh` lists it apart, and add a row to that table above; for a game
+workaround of this repository's own, put the commit last with `HACK:` in its subject, as Valve does, which
+`.github/release-notes.sh` lists apart too, and give it a table here. Then add the issue write-up with the same
+sections as the existing ones, its reproducer under [`repro/`](repro) if it has one, and a row in the top-level
 [README](../README.md).

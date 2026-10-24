@@ -5,13 +5,14 @@ description: Rebase Proton-JE onto the newest Proton Experimental, tag the relea
 
 # A new Proton-JE release on a new Proton Experimental
 
-Layout: `~/repos/proton-je` is the Proton fork (branch `je-11.0`; remote `origin` = jegglest/proton-je over
-SSH, `valve` = ValveSoftware/Proton). `wine/` is the submodule: a treeless clone of jegglest/wine (branch
-`je-11.0`; remote `valve` = ValveSoftware/wine; both remotes fetch with the `tree:0` filter). The Proton tree
-carries no patch files: the Wine commits on the fork are the patches, in two groups, first the author's own
-fixes for upstream Wine, then the commits carried from Proton-EM. `.github/workflows/build.yml` builds any tag
-`proton-je-*` and publishes `<tag>.tar.xz` + `<tag>.sha512sum` as a GitHub release; `.github/release-notes.sh`
-writes the release body from the git history.
+Layout: `~/repos/proton-je` is the Proton fork (branch `je-11.0`; remote `origin` = jegglest/proton-je over SSH,
+`valve` = ValveSoftware/Proton). `wine/` is the submodule: a full clone of jegglest/wine (branch `je-11.0`; remote
+`valve` = ValveSoftware/wine), never a shallow or partial one. The Proton tree carries no patch files: the Wine
+commits on the fork are the patches, in three groups, first the author's own fixes for upstream Wine, then the
+commits carried from Proton-EM, then fixes taken early from Valve's own newer Wine (commit 32, Valve's
+`RtlpUnWaitCriticalSection()` fix for the Helldivers 2 crash, from its bleeding-edge branch).
+`.github/workflows/build.yml` builds any tag `proton-je-*` and publishes `<tag>.tar.xz` + `<tag>.sha512sum` as a
+GitHub release; `.github/release-notes.sh` writes the release body from the git history.
 
 Do the steps in order. Every push goes to the public forks; stop and report when a step fails rather than
 improvising. Nothing with personal data (play time, schedules) goes into docs or commit messages.
@@ -35,30 +36,35 @@ normally not an ancestor of `$new_base`; `git log --oneline $old_base..$new_base
 ## 2. Rebase the Wine fork
 
 ```bash
-cd wine && git fetch --filter=tree:0 valve experimental_11.0
+cd wine && git fetch valve experimental_11.0 bleeding-edge
 git merge-base --is-ancestor $new_wine valve/experimental_11.0 || echo "gitlink not on the branch: fetch it by sha"
+git log --oneline $new_wine -F --grep='Ignore semaphore errors in RtlpUnWaitCriticalSection()'   # Valve's fix arrived?
 old_head=$(git rev-parse je-11.0)
 git diff --name-only $old_wine $old_head > /tmp/ours.txt
 git diff --name-only $old_wine $new_wine | grep -Fxf /tmp/ours.txt     # files Valve touched that we touch too
 git rebase --onto $new_wine $old_wine je-11.0
 ```
 
-Verify before anything is pushed: `git rev-list --count $new_wine..je-11.0` is the old count (31 at the time
-of writing), and `git range-diff $old_wine..$old_head $new_wine..je-11.0` shows every commit as `=`. A
+Verify before anything is pushed: `git rev-list --count $new_wine..je-11.0` is the old count (32 at the time
+of writing), and `git range-diff $old_wine..$old_head $new_wine..je-11.0` shows every commit as `=`. Once Valve's
+Wine for the new Experimental has a commit taken early (the `grep` above prints it), the rebase drops ours as
+empty and the count is one lower: take its tag out of the loops below, and its rows out of the READMEs and the
+write-up's header in step 4, saying in the docs commit that Proton Experimental now has the fix. A
 conflict means a patch needs a port: resolve it the way the upstream submission would, keep the message (and
 the attribution line of an imported commit), and say what changed in the release page (step 4) and in the
 range-diff summary of the docs commit.
 
-The docs link the five upstream patches through tags on the fork named after their pages, and their compare
-links start from the fork's `experimental_11.0`, so a rebase moves the tags instead of editing commit ids. Each
-tag's new commit is the one with the same subject in the rebased series:
+The docs link the five upstream patches and Valve's fix through tags on the fork, and their compare links start from
+the fork's `experimental_11.0`, so a rebase moves the tags instead of editing commit ids. Each tag's new commit is
+the one with the same subject in the rebased series:
 
 ```bash
 for t in waitonaddress-use-after-return waitonaddress-stale-alert waitonaddress-stale-alert-test \
-         ntsync-mutex-owned-after-close ntsync-mutex-in-use-after-close; do
+         ntsync-mutex-owned-after-close ntsync-mutex-in-use-after-close cs-unwait-ignore-errors; do
   git tag -f $t $(git log -1 --format=%H -F --grep="$(git log -1 --format=%s $t)" $new_wine..je-11.0)
 done
 git rev-list --count $new_wine..ntsync-mutex-in-use-after-close    # 5: the tags sit on the first five commits
+git rev-parse cs-unwait-ignore-errors je-11.0                       # the same twice: Valve's fix is last
 ```
 
 Keep the old head reachable, because the published release notes link every commit of it: one annotated tag
@@ -75,7 +81,7 @@ git push origin <the new release tags>
 git push --force-with-lease=je-11.0:$old_head origin je-11.0
 git push --force origin refs/tags/waitonaddress-use-after-return refs/tags/waitonaddress-stale-alert \
     refs/tags/waitonaddress-stale-alert-test refs/tags/ntsync-mutex-owned-after-close \
-    refs/tags/ntsync-mutex-in-use-after-close
+    refs/tags/ntsync-mutex-in-use-after-close refs/tags/cs-unwait-ignore-errors
 ```
 
 ## 3. Rebase the Proton fork
@@ -95,12 +101,14 @@ If the first pick dies with `fatal: invalid commit position. commit-graph is lik
 2026-10-16, with `git commit-graph verify` clean in both repositories), `git rebase --abort` and run the rebase,
 and every `--continue` below, as `git -c core.commitGraph=false rebase …`.
 
-Every commit that moves the `wine` gitlink conflicts (2 on 2026-10-16). Resolve each with
-`git update-index --cacheinfo 160000,<sha>,wine && GIT_EDITOR=true git rebase --continue`: the first one (the
-sync fixes) gets the last author-owned commit of the rebased Wine series,
-`git -C wine log -1 --format=%H --author='Jason Eggleston' $new_wine..je-11.0`; every later one gets the new
-Wine head, `git -C wine rev-parse je-11.0`. Any other conflict is Valve changing a file we change (the `proton`
-script): keep Valve's change and ours.
+Every commit that moves the `wine` gitlink conflicts (2 on 2026-10-16, 3 since the Helldivers 2 fix).
+Resolve each with `git update-index --cacheinfo 160000,<sha>,wine && GIT_EDITOR=true git rebase --continue`,
+taking the commits from the tags moved in step 2: the first one (the sync fixes) gets
+`git -C wine rev-parse ntsync-mutex-in-use-after-close`; the second (the FSR 4 commits) gets the commit before
+Valve's fix, `git -C wine rev-parse cs-unwait-ignore-errors~1`; the last one (Valve's fix for Helldivers 2) gets
+the new Wine head, `git -C wine rev-parse je-11.0`. Take them from the tags rather than from authors: commit 32
+is neither the author's nor Proton-EM's. Any other conflict is Valve changing a file we change (the
+`proton` script): keep Valve's change and ours.
 
 Verify: `diff <(git diff $old_base $old_proton -- . ':!wine') <(git diff $new_base HEAD -- . ':!wine')` shows
 only `index`/`@@` offset lines; `git ls-tree HEAD wine` is the new Wine head; `git submodule status` shows
@@ -158,6 +166,7 @@ T=$d/$tag; export WINEPREFIX=/tmp/je-test LD_LIBRARY_PATH=$T/files/lib64:$T/file
 $T/files/bin/wine mutex_abandon.exe close 3; $T/files/bin/wine mutex_abandon.exe waitall 3   # 0 failed steps, "abandoned" lines
 $T/files/bin/wine inproc_cache_probe.exe 5000                                                 # "waited on all 5000 events: OK"
 $T/files/bin/wine raced_wake_probe.exe 20000 3                                                # 0 stale alerts, 0 early returns
+$T/files/bin/wine cs_leave_bad_semaphore.exe                                                    # "returned" in all three modes
 $T/files/bin/wineserver -k
 ```
 
