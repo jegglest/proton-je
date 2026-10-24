@@ -63,7 +63,7 @@ hang rather than exit; 3000 events pass there. It needs `/dev/ntsync` in use, li
 `cs_leave_bad_semaphore` prints the Windows or Wine version and one line per mode. With Proton Experimental
 11.0-20261014 and `proton-je-11.0-20261014-2`, `waiter` and `stale` print `LeaveCriticalSection() raised 0xc0000008,
 flags 0x1` and `stale-high` prints `returned`; from `proton-je-11.0-20261014-3` on, which carries Valve's fix, all
-three return.
+three return. On Windows 11, `waiter` raises `0xc0000008` with flags `0x81`, and `stale` and `stale-high` return.
 
 `amd_probe.exe` needs vkd3d-proton's `d3d12.dll` and the FSR 4 DLL in the prefix, which only the tool's `proton`
 script sets up, so run it the way Steam would, with a scratch compatdata directory:

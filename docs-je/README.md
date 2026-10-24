@@ -56,7 +56,7 @@ They go last on the branch.
 
 | What | Commit | What it changes | Upstream |
 |---|---|---|---|
-| [Helldivers 2 closes with `STATUS_INVALID_HANDLE`](helldivers2-renderer-race.md): the game's D3D12 task dispatcher leaves a critical section in a stack frame its renderer thread has already left | commit 32, [`cs-unwait-ignore-errors`](https://github.com/jegglest/wine/commit/cs-unwait-ignore-errors) (`dlls/ntdll/sync.c`), Paul Gofman's "ntdll: Ignore semaphore errors in RtlpUnWaitCriticalSection()" from Valve's bleeding-edge branch | `LeaveCriticalSection()` no longer raises when releasing the semaphore of a critical section fails. Release `-2` carried a workaround of its own instead, which kept the woken thread waiting until the dispatcher was out of `LeaveCriticalSection()` | in Valve's bleeding-edge branch since 2026-10-20, not yet in Proton Experimental; upstream Wine still raises there |
+| [Helldivers 2 closes with `STATUS_INVALID_HANDLE`](helldivers2-renderer-race.md): the game's D3D12 task dispatcher leaves a critical section in a stack frame its renderer thread has already left | commit 32, [`cs-unwait-ignore-errors`](https://github.com/jegglest/wine/commit/cs-unwait-ignore-errors) (`dlls/ntdll/sync.c`), Paul Gofman's "ntdll: Ignore semaphore errors in RtlpUnWaitCriticalSection()" from Valve's bleeding-edge branch | `LeaveCriticalSection()` no longer raises when releasing the semaphore of a critical section fails. Release `-2` carried a workaround of its own instead, which kept the woken thread waiting until the dispatcher was out of `LeaveCriticalSection()` | in Valve's bleeding-edge branch since 2026-10-20, not yet in Proton Experimental; upstream Wine still raises there, as Windows does with a real waiter. What makes the game crash under Wine is that Wine encodes a critical section's state differently from Windows |
 
 ## Documented, nothing carried
 
@@ -73,7 +73,7 @@ releases. Windows: Windows 11 Enterprise Evaluation 25H2, build 26200.9457, in a
 same host, running the same executables. Wine's conformance tests (`ntdll:sync`, `kernel32:sync`) were built from
 the patched tree and run as the same binaries on both systems. The Helldivers 2 write-up reads the game's own
 crash dumps, from Proton Experimental 11.0-20261014 and `proton-je-11.0-20261014-1`; its probe of
-`LeaveCriticalSection()` ran on Linux 7.2.9, and its run on the Windows virtual machine above is pending.
+`LeaveCriticalSection()` ran on Linux 7.2.9 and on the Windows virtual machine above.
 
 ## Provenance
 
