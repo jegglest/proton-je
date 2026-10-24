@@ -7,7 +7,7 @@
 | Fixes | memory corruption: a waker can still be reading and writing a waiter's stack entry after the waiter has returned and its caller has reused that stack |
 | Needs | nothing; it stands on its own. [Patch 2](waitonaddress-stale-alert.md) is written on top of it |
 | Applies to | Valve's Wine [`6d211aab`](https://github.com/ValveSoftware/wine/commit/6d211aabd1d325c9990a5fd7a81b9db37caae12d), [`bc8d17c6`](https://github.com/ValveSoftware/wine/commit/bc8d17c6914a2285f397b71aa8bd73cd90377230) and [`7fc704ef`](https://github.com/ValveSoftware/wine/commit/7fc704ef49c50e9702c9983a5250d5738697bb04) (Proton Experimental 20261001, 20261008 and 20261014), Wine master up to `a15ee2ccf2` (2026-10-09; since `81e52628` of 2026-10-14 master has this change and the patch no longer applies) and wine-cachyos `cachyos_11.0_20261001/main` as of 2026-10-04 (`2ce6b44caa`), with `git am`, no conflicts |
-| Upstream | Wine bug [60397](https://bugs.winehq.org/show_bug.cgi?id=60397), point 1 of the report; UNCONFIRMED. Fixed in Wine on 2026-10-14 by Paul Gofman's [`81e52628`](https://gitlab.winehq.org/wine/wine/-/commit/81e52628b25ac173d04796e8a9b9cda637d3e233) ([MR 12315](https://gitlab.winehq.org/wine/wine/-/merge_requests/12315), in Wine 11.20), the same change (tid read and unlink first, the address cleared last with a release store, an acquire read in the waiter's pre-check), after Etaash Mathamsetty's [MR 12309](https://gitlab.winehq.org/wine/wine/-/merge_requests/12309) described the race; neither cites the bug. Kept here until Valve's Wine has it. The same change is also pending as [wine-cachyos PR #34](https://github.com/CachyOS/wine-cachyos/pull/34) (2026-10-07, open) |
+| Upstream | Wine bug [60397](https://bugs.winehq.org/show_bug.cgi?id=60397), point 1 of the report; UNCONFIRMED. Fixed in Wine on 2026-10-14 by Paul Gofman's [`81e52628`](https://gitlab.winehq.org/wine/wine/-/commit/81e52628b25ac173d04796e8a9b9cda637d3e233) ([MR 12315](https://gitlab.winehq.org/wine/wine/-/merge_requests/12315), in Wine 11.20), the same change (tid read and unlink first, the address cleared last with a release store, an acquire read in the waiter's pre-check), after Etaash Mathamsetty's [MR 12309](https://gitlab.winehq.org/wine/wine/-/merge_requests/12309) described the race; neither cites the bug. Valve took it into its Wine's bleeding-edge branch on 2026-10-15 as [`b2a60dcd145`](https://github.com/ValveSoftware/wine/commit/b2a60dcd1454b89e7f8e7fc1c6026f6bfcc3971e); kept here until it reaches Proton Experimental. The same change was also proposed as [wine-cachyos PR #34](https://github.com/CachyOS/wine-cachyos/pull/34) (2026-10-07), closed unmerged on 2026-10-17 once Wine had it |
 | Windows | no equivalent code path: its wait block is handed from waiter to waker with a flag exchange, not through a list entry the waker keeps touching |
 | Full story | [Stale thread alerts from `RtlWaitOnAddress()`](../stale-thread-alert.md), section "The Wine side" |
 
@@ -62,8 +62,17 @@ can be checked:
 - The unlocked pre-check that opened the window is the second commit of Wine merge request
   [3929](https://gitlab.winehq.org/wine/wine/-/merge_requests/3929) (Paul Gofman, merged 2024-04-24), added as
   an optimisation next to a fix for a spurious-wakeup crash in Resident Evil; its review did not discuss it.
-- [wine-cachyos PR #34](https://github.com/CachyOS/wine-cachyos/pull/34) (Erhan Bilgili, 2026-10-07) makes the
-  same change in the same form without citing the bug; as of 2026-10-09 it is open and its reviewers asked what
-  it fixes.
+- [wine-cachyos PR #34](https://github.com/CachyOS/wine-cachyos/pull/34) (Erhan Bilgili, 2026-10-07) made the
+  same change in the same form without citing the bug; its reviewers asked what it fixes, and it was closed
+  unmerged on 2026-10-17, after Wine had the change.
+- 2026-10-14: Wine fixed it with Paul Gofman's
+  [`81e52628`](https://gitlab.winehq.org/wine/wine/-/commit/81e52628b25ac173d04796e8a9b9cda637d3e233)
+  ([MR 12315](https://gitlab.winehq.org/wine/wine/-/merge_requests/12315), Wine 11.20), the same change, after Etaash
+  Mathamsetty's [MR 12309](https://gitlab.winehq.org/wine/wine/-/merge_requests/12309) described the race;
+  neither cites the bug.
+- 2026-10-15: Valve took `81e52628` into its Wine's bleeding-edge branch as
+  [`b2a60dcd145`](https://github.com/ValveSoftware/wine/commit/b2a60dcd1454b89e7f8e7fc1c6026f6bfcc3971e)
+  ("preemptive cherry-pick"). Once it reaches Proton Experimental, the rebase onto that Experimental drops
+  this patch.
 - The patch was written with an LLM, which Wine's contribution policy excludes from merge requests, so it is a
   reference for a fix that a Wine developer would write themselves; the bug report has the analysis in prose.

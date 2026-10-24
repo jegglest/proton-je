@@ -223,8 +223,14 @@ without any access violation, a different problem.
   `RtlWakeAddressAll()`; its description says it "fixes Resident Evil games randomly crashing due to unhandled
   spurious SleepConditionVariableCS wakeups". The same alert and the same symptom, with only the race that
   produces the stray alert differing. Its second commit is e00cbef06d, the pre-check behind point 1.
-- 2026-10-07: [wine-cachyos PR #34](https://github.com/CachyOS/wine-cachyos/pull/34) (Erhan Bilgili) makes the
-  same change as patch 1, in the same form, without citing the bug; open as of 2026-10-09.
+- 2026-10-07: [wine-cachyos PR #34](https://github.com/CachyOS/wine-cachyos/pull/34) (Erhan Bilgili) made the
+  same change as patch 1, in the same form, without citing the bug; closed unmerged on 2026-10-17.
+- 2026-10-14: Wine fixed point 1 with Paul Gofman's
+  [`81e52628`](https://gitlab.winehq.org/wine/wine/-/commit/81e52628b25ac173d04796e8a9b9cda637d3e233)
+  ([MR 12315](https://gitlab.winehq.org/wine/wine/-/merge_requests/12315), Wine 11.20), the same change as patch 1,
+  without citing the bug. Valve's Wine has carried it in its bleeding-edge branch since 2026-10-15
+  ([`b2a60dcd145`](https://github.com/ValveSoftware/wine/commit/b2a60dcd1454b89e7f8e7fc1c6026f6bfcc3971e)).
+  Points 2 and 3, the stale alert itself, are fixed in neither as of 2026-10-24.
 - Wine's Developer FAQ says LLM-generated code is not accepted. The patches here were written with an LLM, so
   upstream has the bug reports, the measurements and the reproducers, and the patches are a reference for a fix
   that a Wine developer would write themselves.
