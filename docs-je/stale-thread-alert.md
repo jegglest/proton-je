@@ -118,16 +118,19 @@ first thread to wait". None of that describes a wake that ends the thread's next
 - **Patch 1**, `ntdll: Don't touch a RtlWaitOnAddress() waiter's entry after clearing its address.` The wakers
   read the thread id and unlink the entry first, and clear the address last, with release semantics
   (`WritePointerRelease`); the waiter reads it with acquire semantics. The unlocked fast path stays.
-- **Patch 2**, `ntdll: Take the in-flight alert when a RtlWaitOnAddress() wait times out after being dequeued.`
-  A waiter that finds its entry dequeued after a timeout has been woken: it takes the alert with an untimed
-  `NtWaitForAlertByThreadId(NULL, NULL)` and returns `STATUS_SUCCESS`. This is the Windows behaviour and has no
-  timing constants; the waker that dequeued the entry is committed to alerting the thread, so the wait is bounded
-  by the waker's next few instructions.
-- **Patch 3**, `ntdll/tests: Test that a raced RtlWaitOnAddress() wake leaves no alert pending.` In `ntdll:sync`:
-  a thread loops `RtlWakeAddressSingle()` or `RtlWakeAddressAll()` on one address while the test does 20,000
+- **Patch 2**, `ntdll: Take the alert of a RtlWaitOnAddress() wake that races a timeout.` A waiter that finds
+  its entry dequeued after a timeout has been woken: it takes the alert with an untimed
+  `NtWaitForAlertByThreadId(NULL, NULL)` and reports the wake (`STATUS_SUCCESS`). This is the Windows behaviour
+  and has no timing constants; the waker that dequeued the entry is committed to alerting the thread, so the wait
+  is bounded by the waker's next few instructions. The patch also replaces the end of the comment in
+  `RtlWakeAddressAll()` that accepted this wake as the price of alerting outside the spinlock ("even if that can
+  be responsible for spurious wake up scenario", `82275b13a24`).
+- **Patch 3**, `ntdll/tests: Test a RtlWaitOnAddress() wake racing a timed-out wait.` In `ntdll:sync`: a thread
+  loops `RtlWakeAddressSingle()` or `RtlWakeAddressAll()` on one address while the test does up to 20,000
   `RtlWaitOnAddress()` calls on it with a timeout of 0 or 100 ns; after each one `NtWaitForAlertByThreadId(NULL, 0)`
-  must not report an alert pending. Without that export the fallback is a 100 ns wait on another address that must
-  time out.
+  must not report an alert pending. It skips before Windows 8, which introduced both functions. (Until release
+  `-3` it had a fallback for a missing `NtWaitForAlertByThreadId()`, a 100 ns wait on another address that must
+  time out; no Windows version needs it.)
 
 Earlier versions of the series, and why they were dropped: v2 consumed the alert but kept the unlocked check; v3
 ignored alerts that arrived while the waiter was still queued, instead of consuming them; v4 bounded the consume
