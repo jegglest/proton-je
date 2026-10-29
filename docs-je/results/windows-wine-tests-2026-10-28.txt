@@ -1,0 +1,74 @@
+Wine conformance tests on Windows 11, 2026-10-28
+Same VM as windows-wine-tests-2026-09-29.txt (Windows 11 Enterprise Evaluation 25H2, build 26200.9457, 4 logical processors).
+Binaries: ntdll_test.exe and kernel32_test.exe, 64- and 32-bit, built from jegglest/wine je-11.0 as released in
+proton-je-11.0-20261014-4 (Valve Wine 7fc704ef plus the series); the new tests are the commits tagged
+waitonaddress-stale-alert-test (ntdll:sync, test_wait_on_address_raced_wake) and ntsync-mutex-in-use-after-close-test
+(kernel32:sync, test_mutex_wait_all). Three rounds of both units, 64- then 32-bit. Under Wine with /dev/ntsync the same
+binaries fail on stock Proton Experimental 20261014 (ntdll: 2 or 3 of the new test's 4 cases; kernel32: test_mutex twice
+and the new wait-all check) and pass with the series.
+
+
+
+Microsoft Windows [Version 10.0.26200.9457]
+NUMBER_OF_PROCESSORS=4 PROCESSOR_ARCHITECTURE=AMD64
+=== run 1: ntdll_test64.exe sync ===
+1f0c:sync: 0 tests executed (0 marked as todo, 0 as flaky, 0 failures), 0 skipped.
+2a94:sync: 437 tests executed (0 marked as todo, 0 as flaky, 0 failures), 0 skipped.
+=== run 1: ntdll_test32.exe sync ===
+22cc:sync: 0 tests executed (0 marked as todo, 0 as flaky, 0 failures), 0 skipped.
+1b68:sync: 437 tests executed (0 marked as todo, 0 as flaky, 0 failures), 0 skipped.
+=== run 1: kernel32_test64.exe sync ===
+sync.c:746: memory resource notifications not supported
+sync.c:2012: produced 95, c1 31, c2 32, c3 32
+sync.c:2016: producer sleep 0, consumer sleep 79
+sync.c:2785: number of shared accesses per thread are c1 47, c2 48, c3 49
+sync.c:2786: number of total exclusive accesses is 11
+109c:sync: 19020885 tests executed (0 marked as todo, 0 as flaky, 0 failures), 0 skipped.
+=== run 1: kernel32_test32.exe sync ===
+sync.c:746: memory resource notifications not supported
+sync.c:2012: produced 95, c1 31, c2 32, c3 32
+sync.c:2016: producer sleep 0, consumer sleep 80
+sync.c:2785: number of shared accesses per thread are c1 52, c2 42, c3 49
+sync.c:2786: number of total exclusive accesses is 11
+23bc:sync: 6244835 tests executed (0 marked as todo, 0 as flaky, 0 failures), 0 skipped.
+=== run 2: ntdll_test64.exe sync ===
+2b30:sync: 0 tests executed (0 marked as todo, 0 as flaky, 0 failures), 0 skipped.
+176c:sync: 437 tests executed (0 marked as todo, 0 as flaky, 0 failures), 0 skipped.
+=== run 2: ntdll_test32.exe sync ===
+0a50:sync: 0 tests executed (0 marked as todo, 0 as flaky, 0 failures), 0 skipped.
+0814:sync: 437 tests executed (0 marked as todo, 0 as flaky, 0 failures), 0 skipped.
+=== run 2: kernel32_test64.exe sync ===
+sync.c:746: memory resource notifications not supported
+sync.c:2012: produced 95, c1 31, c2 32, c3 32
+sync.c:2016: producer sleep 0, consumer sleep 63
+sync.c:2785: number of shared accesses per thread are c1 46, c2 49, c3 47
+sync.c:2786: number of total exclusive accesses is 10
+17f8:sync: 19042833 tests executed (0 marked as todo, 0 as flaky, 0 failures), 0 skipped.
+=== run 2: kernel32_test32.exe sync ===
+sync.c:746: memory resource notifications not supported
+sync.c:2012: produced 93, c1 31, c2 31, c3 31
+sync.c:2016: producer sleep 0, consumer sleep 72
+sync.c:2785: number of shared accesses per thread are c1 33, c2 51, c3 41
+sync.c:2786: number of total exclusive accesses is 9
+1748:sync: 6262472 tests executed (0 marked as todo, 0 as flaky, 0 failures), 0 skipped.
+=== run 3: ntdll_test64.exe sync ===
+20a4:sync: 0 tests executed (0 marked as todo, 0 as flaky, 0 failures), 0 skipped.
+1bc4:sync: 437 tests executed (0 marked as todo, 0 as flaky, 0 failures), 0 skipped.
+=== run 3: ntdll_test32.exe sync ===
+022c:sync: 0 tests executed (0 marked as todo, 0 as flaky, 0 failures), 0 skipped.
+0878:sync: 437 tests executed (0 marked as todo, 0 as flaky, 0 failures), 0 skipped.
+=== run 3: kernel32_test64.exe sync ===
+sync.c:746: memory resource notifications not supported
+sync.c:2012: produced 93, c1 31, c2 31, c3 31
+sync.c:2016: producer sleep 0, consumer sleep 80
+sync.c:2785: number of shared accesses per thread are c1 48, c2 50, c3 41
+sync.c:2786: number of total exclusive accesses is 10
+1730:sync: 19390416 tests executed (0 marked as todo, 0 as flaky, 0 failures), 0 skipped.
+=== run 3: kernel32_test32.exe sync ===
+sync.c:746: memory resource notifications not supported
+sync.c:2012: produced 95, c1 32, c2 31, c3 32
+sync.c:2016: producer sleep 0, consumer sleep 73
+sync.c:2785: number of shared accesses per thread are c1 46, c2 47, c3 49
+sync.c:2786: number of total exclusive accesses is 10
+0ef0:sync: 6336982 tests executed (0 marked as todo, 0 as flaky, 0 failures), 0 skipped.
+=== done ===

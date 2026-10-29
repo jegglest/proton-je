@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Patches | commits 6 to 31 on [`jegglest/wine`, branch `je-11.0`](https://github.com/jegglest/wine/commits/je-11.0) (`dlls/amdxc64/`, `dlls/win32u/d3dkmt.c`), Etaash Mathamsetty's work from Proton-EM as Proton-GE ships it, plus the `proton` script change in this repository |
+| Patches | commits 7 to 32 on [`jegglest/wine`, branch `je-11.0`](https://github.com/jegglest/wine/commits/je-11.0) (`dlls/amdxc64/`, `dlls/win32u/d3dkmt.c`), Etaash Mathamsetty's work from Proton-EM as Proton-GE ships it, plus the `proton` script change in this repository |
 | Upstream | Proton issue [#9908](https://github.com/ValveSoftware/Proton/issues/9908), open since 2026-06-24; the Proton-EM commits are not in Valve's Wine |
 | Seen as | Proton Experimental on an RDNA4 card (RX 9070, 9070 XT, 9060 XT): games with FSR 3.1 stay on FSR 3.1, and with `FSR4_UPGRADE=1` they say FSR 4 but render the FSR 3 model |
 | Affects | Proton Experimental and Bleeding Edge since Valve's `amdxc64` auto-enable commit of 2026-06-21; every build of Proton from source also lacks the FSR 4 DLL |

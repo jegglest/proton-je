@@ -3,7 +3,7 @@ Proton-JE
 
 Valve's [Proton Experimental](https://github.com/ValveSoftware/Proton/tree/experimental_11.0), built the way
 Valve builds Proton, with three kinds of changes on top that are kept apart: the patches I am trying to get into
-upstream Wine, five commits for two Wine bugs, so that other people can test the fixes before they land;
+upstream Wine, six commits for two Wine bugs, so that other people can test the fixes before they land;
 carried as they are from Proton-EM and not for upstreaming, the FSR 4 driver-side commits that make FSR 4 work
 on RDNA4 cards; and fixes from Valve's own newer Wine, taken before they reach Proton Experimental, one so far,
 for a Helldivers 2 crash. Nothing else is changed: no wine-staging, no other custom patches.
@@ -11,10 +11,10 @@ for a Helldivers 2 crash. Nothing else is changed: no wine-staging, no other cus
 | | |
 |---|---|
 | Base | Proton `experimental_11.0` commit [`7a94df49`](https://github.com/ValveSoftware/Proton/commit/7a94df49e4695fc101fd47d614166e69c43d9669) (Steam's `experimental-11.0-20261014`) with Wine [`7fc704ef`](https://github.com/ValveSoftware/wine/commit/7fc704ef49c50e9702c9983a5250d5738697bb04) |
-| Patches | the commits on branch [`je-11.0` of `jegglest/wine`](https://github.com/jegglest/wine/commits/je-11.0): Valve's Wine for this Experimental, then commits 1 to 5, my synchronization fixes meant for upstream Wine, then commits 6 to 31, Etaash Mathamsetty's FSR 4 work carried from Proton-EM, then commit 32, Valve's fix for a Helldivers 2 crash, taken early from its bleeding-edge branch; the `wine/` submodule points at it |
+| Patches | the commits on branch [`je-11.0` of `jegglest/wine`](https://github.com/jegglest/wine/commits/je-11.0): Valve's Wine for this Experimental, then commits 1 to 6, my synchronization fixes meant for upstream Wine, then commits 7 to 32, Etaash Mathamsetty's FSR 4 work carried from Proton-EM, then commit 33, Valve's fix for a Helldivers 2 crash, taken early from its bleeding-edge branch; the `wine/` submodule points at it |
 | Builds | [Releases](https://github.com/jegglest/proton-je/releases): `proton-je-<Proton version>-<n>.tar.xz`, built by [GitHub Actions](.github/workflows/build.yml) from the tagged commit. Use `proton-je-11.0-20261001-3` or later: `-1` and `-2` abort any game once it has about 3300 handles open at once ([why](docs-je/patches/ntsync-mutex-in-use-after-close.md#the-change)) |
 | Write-ups | [`docs-je/`](docs-je): one page per patch for upstream ([`docs-je/patches/`](docs-je/patches)) with the commit, the patch file and how to check it; the full investigation of each issue, with the test results on Linux and on Windows |
-| Discussion | Proton issue [#8072](https://github.com/ValveSoftware/Proton/issues/8072), Wine bugs [60397](https://bugs.winehq.org/show_bug.cgi?id=60397) and [60417](https://bugs.winehq.org/show_bug.cgi?id=60417); Proton issue [#9908](https://github.com/ValveSoftware/Proton/issues/9908) for FSR 4 |
+| Discussion | Proton issue [#8072](https://github.com/ValveSoftware/Proton/issues/8072), Wine bugs [60397](https://bugs.winehq.org/show_bug.cgi?id=60397), [60417](https://bugs.winehq.org/show_bug.cgi?id=60417), [60523](https://bugs.winehq.org/show_bug.cgi?id=60523) and [60524](https://bugs.winehq.org/show_bug.cgi?id=60524); Proton issue [#9908](https://github.com/ValveSoftware/Proton/issues/9908) for FSR 4 |
 
 What is carried
 ---------------
@@ -23,7 +23,7 @@ Three groups, kept apart on purpose: my patches for upstream Wine, Proton-EM's F
 Valve's own fixes taken before they reach Proton Experimental. [`docs-je/`](docs-je) has the full write-up of each
 issue, with the test programs and the Windows comparison.
 
-### For upstream Wine: commits 1 to 5
+### For upstream Wine: commits 1 to 6
 
 Fixes for two bugs in Wine's synchronization primitives, found while tracking down the mid-mission crash of
 Warhammer 40,000: Space Marine 2 under Proton ([#8072](https://github.com/ValveSoftware/Proton/issues/8072)).
@@ -34,53 +34,56 @@ upstream:
 | Patch | What it does | Upstream |
 |---|---|---|
 | [1](docs-je/patches/waitonaddress-use-after-return.md) | `RtlWakeAddressSingle()` and `RtlWakeAddressAll()` no longer touch a waiter's stack entry after clearing its address: a use-after-return on the path every lock and condition-variable wake takes | Wine bug [60397](https://bugs.winehq.org/show_bug.cgi?id=60397), point 1. Fixed in Wine on 2026-10-14 by [`81e52628`](https://gitlab.winehq.org/wine/wine/-/commit/81e52628b25ac173d04796e8a9b9cda637d3e233) ([MR 12315](https://gitlab.winehq.org/wine/wine/-/merge_requests/12315), Wine 11.20), the same change, in Valve's bleeding-edge branch since 2026-10-15 ([`b2a60dcd145`](https://github.com/ValveSoftware/wine/commit/b2a60dcd1454b89e7f8e7fc1c6026f6bfcc3971e)); kept here until it reaches Proton Experimental |
-| [2 and 3](docs-je/patches/waitonaddress-stale-alert.md) | a `RtlWaitOnAddress()` waiter that times out just as a waker dequeues it takes the alert that is on its way, as Windows does, instead of leaving it to end the thread's next wait early; plus a conformance test. This is the Space Marine 2 crash | Wine bug 60397, points 2 and 3 |
+| [2 and 3](docs-je/patches/waitonaddress-stale-alert.md) | a `RtlWaitOnAddress()` waiter that times out just as a waker dequeues it takes the alert that is on its way, as Windows does, instead of leaving it to end the thread's next wait early; plus a conformance test. This is the Space Marine 2 crash | Wine bug [60523](https://bugs.winehq.org/show_bug.cgi?id=60523), points 2 and 3 of 60397 |
 | [4](docs-je/patches/ntsync-mutex-owned-after-close.md) | `wineserver` keeps an ntsync mutex that is owned when its last handle is closed, so that its owner's death still abandons it; the two `kernel32:sync` `test_mutex` failures | Wine bug [60417](https://bugs.winehq.org/show_bug.cgi?id=60417) |
-| [5](docs-je/patches/ntsync-mutex-in-use-after-close.md) | the remaining case, a mutex closed while a wait-all of the same process is still pending on it; a new server request, so the protocol version changes | Wine bug 60417, second part |
+| [5 and 6](docs-je/patches/ntsync-mutex-in-use-after-close.md) | the remaining case, a mutex closed while a wait-all of the same process is still pending on it, through two new server requests that only that case sends; plus a conformance test | Wine bug [60524](https://bugs.winehq.org/show_bug.cgi?id=60524), the second part of 60417 |
 
-All five apply with `git am` to Valve's Wine for this Experimental and to wine-cachyos. Wine master has had 1 since
-`81e52628` (2026-10-14, Wine 11.20); 2 and 3 apply there, 4 and 5 need a hand port (checked 2026-10-16, details on
-the pages). The
-[compare view](https://github.com/jegglest/wine/compare/experimental_11.0...ntsync-mutex-in-use-after-close) shows exactly these commits;
+All six apply with `git am` to Valve's Wine for this Experimental. Wine master (since `81e52628`, Wine 11.20),
+Valve's bleeding-edge branch and wine-cachyos already have patch 1's fix; on them 2 goes on with `git am --3way`
+and the others with plain `git am`, except that on Wine master 4 and 5 need a hand port, because Proton's fsync
+fallback sits on the lines they change (checked 2026-10-28, details on the pages). The
+[compare view](https://github.com/jegglest/wine/compare/experimental_11.0...ntsync-mutex-in-use-after-close-test) shows exactly these commits;
 `.patch` appended to it, or to any commit link, makes GitHub generate the series or that one commit as a
 `git am` file. No patch files are kept here: the commits are the patches.
 
-**Stale thread alerts from `RtlWaitOnAddress()`** (patches 1–3, Wine bug
-[60397](https://bugs.winehq.org/show_bug.cgi?id=60397)). `RtlWakeAddressSingle()` and `RtlWakeAddressAll()`
+**Stale thread alerts from `RtlWaitOnAddress()`** (patches 1–3, Wine bugs
+[60397](https://bugs.winehq.org/show_bug.cgi?id=60397) and [60523](https://bugs.winehq.org/show_bug.cgi?id=60523)). `RtlWakeAddressSingle()` and `RtlWakeAddressAll()`
 take a waiter off the list under a lock but alert its thread only after unlocking. A waiter whose timeout
 expires in that window returns `STATUS_TIMEOUT` and leaves the alert pending, so the thread's next wait returns
 immediately, whatever it is waiting for: the same mechanism is behind `SleepConditionVariableCS()`, SRW locks
 and critical sections. Windows consumes the wake instead (measured on Windows 11). Patch 2 makes the waiter take
-the in-flight alert, as Windows does; patch 1 fixes a use-after-return in the wakers, which kept touching the
+the in-flight alert, as Windows does, and corrects the comment in `RtlWakeAddressAll()` that accepted the stale
+alert as the price of alerting outside the lock; patch 1 fixes a use-after-return in the wakers, which kept touching the
 waiter's stack entry after releasing it; patch 3 adds a conformance test that fails on stock Wine and passes on
 Windows. In Space Marine 2 a spurious condition-variable wake lets a file-loader callback write into a stack
 frame that is already gone, which is the `EXCEPTION_ACCESS_VIOLATION` in `resFILE_LOADER` reported in #8072.
 The crash became frequent with Linux 7.2, which changed the timing, but the Wine bug is kernel-independent.
 
-**ntsync mutexes that are never abandoned** (patches 4–5, Wine bug
-[60417](https://bugs.winehq.org/show_bug.cgi?id=60417)). With ntsync, a mutex whose handles are all closed
+**ntsync mutexes that are never abandoned** (patches 4–6, Wine bugs
+[60417](https://bugs.winehq.org/show_bug.cgi?id=60417) and [60524](https://bugs.winehq.org/show_bug.cgi?id=60524)). With ntsync, a mutex whose handles are all closed
 while a thread still owns it, or is still using it, drops out of the server's bookkeeping, so when that thread
 dies nobody waiting on the mutex gets `WAIT_ABANDONED`: they wait forever. Windows abandons it. Patch 4 keeps
-such mutexes reachable until they are released or their owner dies; patch 5 covers a mutex closed while another
-thread of the same process is still using it, which needs a new server request (the server protocol version is
-bumped, so every unix-side library must come from the same tree, as it does in a full build like this one).
-These were the two long-standing `kernel32:sync` test failures under ntsync.
+such mutexes reachable until they are released or their owner dies, the in-process counterpart of what Wine's
+server-side mutexes have done since `934514db7c2` (Wine 10.12); patch 5 covers a mutex closed while another
+thread of the same process is still using it, with two new server requests that the client sends only in that
+case; patch 6 is its conformance test. The `kernel32:sync` check that `934514db7c2` added has failed under ntsync
+since in-process synchronization arrived in Wine 10.16; patch 4 or patch 5 alone makes it pass.
 
 Results so far: on my machine the stock build crashed regularly in Space Marine 2; with the patched `ntdll` and
 `wineserver` it has not crashed since 2026-09-26 ([details](docs-je/stale-thread-alert.md#in-the-game)). Several
 people in that thread report the same with Jpokul's prototype build, which carries the same patches. Wine's
-`ntdll:sync` and `kernel32:sync` test suites pass with the patches, and so does the new test on Windows 11.
+`ntdll:sync` and `kernel32:sync` test suites pass with the patches, and so do both new tests on Windows 11.
 
 The synchronization patches were written with the help of an LLM (Claude), which Wine's contribution policy
 excludes from merge requests, so upstream has them as bug reports with the analysis, and the patches live here
 and on the Proton issue as a reference.
 
-### Carried from Proton-EM, not for upstream: commits 6 to 31
+### Carried from Proton-EM, not for upstream: commits 7 to 32
 
 These are Etaash Mathamsetty's commits, carried unchanged with their authorship so that the builds are nicer to
 test with on RDNA4 cards. Nothing here tries to upstream them, and `amdxc64` is a Proton-only module in any case.
 
-**FSR 4 on RDNA4 GPUs** (commits 6–31, Proton issue
+**FSR 4 on RDNA4 GPUs** (commits 7–32, Proton issue
 [#9908](https://github.com/ValveSoftware/Proton/issues/9908)). A game with FSR 3.1 asks the AMD driver, through
 `amdxc64.dll`, to swap in FSR 4. Proton Experimental has a minimal `amdxc64` in Wine and, in Steam's own build,
 AMD's FSR 4 DLL (`contrib/amdxcffx64.dll`, FSR 4.1.1). The stub answers none of the questions the DLL asks before
@@ -91,7 +94,7 @@ upgrade to RDNA3 to avoid that confusion (see the issue). Etaash Mathamsetty's
 [`em-11`](https://github.com/Etaash-mathamsetty/wine-valve/tree/em-11)) implements the driver side: `amdxc64` on AMD's SDK
 interfaces, the `IAmdExtD3DDevice8` and shader-intrinsics queries answered from vkd3d-proton's wave-matrix
 support, FSR 4.1.1's `UpdateFfxApiProviderEx`, the ML frame-generation upgrade, and `win32u` reporting the Navi4x
-(FP8) or Navi3x (INT8) adapter family. Proton-GE ships this as patches in its EM-11 set; commits 6 to 31 are those
+(FP8) or Navi3x (INT8) adapter family. Proton-GE ships this as patches in its EM-11 set; commits 7 to 32 are those
 26 commits (the amdxc, win32u and d3dkmt patches of
 [proton-ge-custom at `dceec5e940af`](https://github.com/GloriousEggroll/proton-ge-custom/tree/dceec5e940afd299f40304f24116b141d0798a72/patches/wine-hotfixes/wine-wayland)),
 applied unchanged with their authorship. A build from source has no `contrib/`, so the `proton` script takes
@@ -108,9 +111,9 @@ placed in the tool's `contrib/` directory. On an RX 9070 XT the driver queries t
 with FP8 wave-matrix support, where Valve's stub refuses them, and Helldivers 2 offers FSR 4 where it offered
 FSR 3 before; the [write-up](docs-je/fsr4-rdna4.md) has the measurements.
 
-### Taken early from Valve's Wine: commit 32
+### Taken early from Valve's Wine: commit 33
 
-**Helldivers 2 closes with `STATUS_INVALID_HANDLE`** (commit 32, [write-up](docs-je/helldivers2-renderer-race.md)).
+**Helldivers 2 closes with `STATUS_INVALID_HANDLE`** (commit 33, [write-up](docs-je/helldivers2-renderer-race.md)).
 Since the game update of 2026-10-21 the game's `D3D12TaskDispatcherThread` can leave a critical section that lives
 in a stack frame its `renderer` thread has already left: the renderer hands the object to the dispatcher, is woken
 while the dispatcher still holds the lock, and returns before the dispatcher is out of `LeaveCriticalSection()`.
@@ -118,7 +121,7 @@ Under Wine the renderer's new stack contents then read as a lock with a waiting 
 release of that handle fails, and `ntdll` raised a non-continuable `STATUS_INVALID_HANDLE` for it; the game's crash
 reporter takes it from there. Windows raises the same exception for a bad handle, but it encodes a critical
 section's state differently and reads the same stale bytes as a lock whose waiter was already woken, so its leave
-returns without trying. Commit 32 is Paul Gofman's fix from Valve's bleeding-edge branch, carried as it is until it
+returns without trying. Commit 33 is Paul Gofman's fix from Valve's bleeding-edge branch, carried as it is until it
 reaches Proton Experimental: `RtlpUnWaitCriticalSection()` no longer raises when that release fails. Release `-2`
 carried a workaround of its own instead, which kept the woken renderer waiting until the dispatcher was out of
 `LeaveCriticalSection()`. Valve's change is seven lines, covers every way into the exception and changes no timing,

@@ -31,7 +31,7 @@ for commit in $(git -C wine rev-list --reverse "$wine_base..$wine_head"); do
     elif git -C wine log -1 --format=%B "$commit" | grep -q "commit from Valve's Wine"; then valve+=("$line")
     else carried+=("$line"); fi
 done
-echo "**For upstream Wine**, one page per patch in [\`docs-je/patches/\`](https://github.com/$repo/tree/$name/docs-je/patches): stale thread alerts left by \`RtlWaitOnAddress()\` (Wine bug [60397](https://bugs.winehq.org/show_bug.cgi?id=60397), the Space Marine 2 crash in Proton issue [#8072](https://github.com/ValveSoftware/Proton/issues/8072)) and ntsync mutexes that are never abandoned (Wine bug [60417](https://bugs.winehq.org/show_bug.cgi?id=60417)):"
+echo "**For upstream Wine**, one page per patch in [\`docs-je/patches/\`](https://github.com/$repo/tree/$name/docs-je/patches): stale thread alerts left by \`RtlWaitOnAddress()\` (Wine bugs [60397](https://bugs.winehq.org/show_bug.cgi?id=60397) and [60523](https://bugs.winehq.org/show_bug.cgi?id=60523), the Space Marine 2 crash in Proton issue [#8072](https://github.com/ValveSoftware/Proton/issues/8072)) and ntsync mutexes that are never abandoned (Wine bugs [60417](https://bugs.winehq.org/show_bug.cgi?id=60417) and [60524](https://bugs.winehq.org/show_bug.cgi?id=60524)):"
 echo
 printf '%s\n' "${upstream[@]}"
 echo

@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Commit | commit 32 on [`jegglest/wine`, branch `je-11.0`](https://github.com/jegglest/wine/commits/je-11.0), tag [`cs-unwait-ignore-errors`](https://github.com/jegglest/wine/commit/cs-unwait-ignore-errors) (`dlls/ntdll/sync.c`, seven lines): Paul Gofman's "ntdll: Ignore semaphore errors in RtlpUnWaitCriticalSection()" from Valve's Wine |
+| Commit | the last commit on [`jegglest/wine`, branch `je-11.0`](https://github.com/jegglest/wine/commits/je-11.0), tag [`cs-unwait-ignore-errors`](https://github.com/jegglest/wine/commit/cs-unwait-ignore-errors) (`dlls/ntdll/sync.c`, seven lines): Paul Gofman's "ntdll: Ignore semaphore errors in RtlpUnWaitCriticalSection()" from Valve's Wine |
 | Kind | a fix from Valve's newer Wine, taken from its bleeding-edge branch before it reaches Proton Experimental; on for every game, nothing to switch |
 | Seen as | Helldivers 2 closing through its crash reporter since the game update of 2026-10-21 (Steam build 25988413, `game.dll` 1.0.0.19374, `helldivers2.exe` 1.8.46539.0), and still after the next one (the crash reporter's build tag 19411) |
 | Affects | every Proton tried here: Proton Experimental 11.0-20261014 and `proton-je-11.0-20261014-1`; other players report the same crash in Proton issue [#7486](https://github.com/ValveSoftware/Proton/issues/7486), with Proton 11.0-2 too, less often |
@@ -159,7 +159,7 @@ Valve's change does not make Wine's critical sections behave like Windows' in ge
 every bad handle in the leave, including a real waiter's, where Windows raises. Doing exactly what Windows does
 would take Windows' encoding of `LockCount`, a much larger change to Wine's critical sections.
 
-Once Valve's change reaches Proton Experimental, the rebase onto that Experimental drops commit 32, and the
+Once Valve's change reaches Proton Experimental, the rebase onto that Experimental drops this commit, and the
 `-<n>` releases on it get the fix from Valve's Wine itself.
 
 ### What release -2 carried instead
@@ -250,7 +250,7 @@ and Arrowhead's crash reporter has the reports (it uploads the first one and rat
 ## References
 
 - Valve's Wine, bleeding-edge branch: "ntdll: Ignore semaphore errors in RtlpUnWaitCriticalSection()", Paul Gofman,
-  2026-10-20, CodeWeavers bug 27891; commit 32 here, tag
+  2026-10-20, CodeWeavers bug 27891; the last commit here, tag
   [`cs-unwait-ignore-errors`](https://github.com/jegglest/wine/commit/cs-unwait-ignore-errors).
 - Wine commit [`2745228b`](https://gitlab.winehq.org/wine/wine/-/commit/2745228b14d), "ntdll: Don't use debug info
   presence to detect critical section global status.": `LockSemaphore` as a futex word, a handle only above 1.

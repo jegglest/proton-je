@@ -1,13 +1,13 @@
-# Patch 4: keep an owned ntsync mutex reachable after its server object is destroyed
+# Patch 4: keep an owned ntsync mutex until its owner releases it or dies
 
 | | |
 |---|---|
-| Commit | [`ntsync-mutex-owned-after-close`](https://github.com/jegglest/wine/commit/ntsync-mutex-owned-after-close) `server: Keep an owned ntsync mutex reachable after its object is destroyed.` ([patch file](https://github.com/jegglest/wine/commit/ntsync-mutex-owned-after-close.patch)); the tag moves to the rebased commit with every new Proton Experimental |
+| Commit | [`ntsync-mutex-owned-after-close`](https://github.com/jegglest/wine/commit/ntsync-mutex-owned-after-close) `server: Keep an owned ntsync mutex until its owner releases it or dies.` ([patch file](https://github.com/jegglest/wine/commit/ntsync-mutex-owned-after-close.patch)); the tag moves to the rebased commit with every new Proton Experimental |
 | Changes | `server/inproc_sync.c`, 49 lines added and 1 removed: a list of orphaned mutexes, used by `inproc_sync_destroy()` and `abandon_inproc_mutexes()` |
-| Fixes | with `/dev/ntsync`, a thread that dies while owning a mutex whose handles its process has already closed never abandons it, and a thread waiting on the mutex blocks forever instead of getting `WAIT_ABANDONED`. The two long-standing `kernel32:sync` `test_mutex` failures under ntsync |
+| Fixes | with `/dev/ntsync`, a thread that dies while owning a mutex whose handles its process has already closed never abandons it, and a thread waiting on the mutex blocks forever instead of getting `WAIT_ABANDONED`. The two `kernel32:sync` `test_mutex` failures under ntsync: the check is Wine's own, added with `934514db7c2` (Wine 10.12) when Wine made its server-side mutexes do this, and it has failed with ntsync since in-process synchronization arrived in Wine 10.16 (`7bb835b3482`) |
 | Needs | nothing. `wineserver` only, no protocol change: replacing `wineserver` alone is enough |
-| Applies to | Valve's Wine [`6d211aab`](https://github.com/ValveSoftware/wine/commit/6d211aabd1d325c9990a5fd7a81b9db37caae12d), [`bc8d17c6`](https://github.com/ValveSoftware/wine/commit/bc8d17c6914a2285f397b71aa8bd73cd90377230) and [`7fc704ef`](https://github.com/ValveSoftware/wine/commit/7fc704ef49c50e9702c9983a5250d5738697bb04) and wine-cachyos as of 2026-10-04 with `git am`, no conflicts. Wine master as of 2026-10-16 (`7298a818`): the hunks collide with Proton's fsync fallback, which sits on the same lines of `inproc_sync_destroy()` and `abandon_inproc_mutexes()` in Valve's tree and is absent upstream; the logic ports unchanged |
-| Upstream | Wine bug [60417](https://bugs.winehq.org/show_bug.cgi?id=60417) (wineserver), filed 2026-10-01, UNCONFIRMED, no reply as of 2026-10-09 |
+| Applies to | checked 2026-10-28: Valve's Wine [`7fc704ef`](https://github.com/ValveSoftware/wine/commit/7fc704ef49c50e9702c9983a5250d5738697bb04) of Experimental 20261014, Valve's bleeding-edge branch (`674d3cdd`) and wine-cachyos (`cachyos_11.0_20261014/main`) with `git am`, no conflicts (earlier: `6d211aab`, `bc8d17c6`, wine-cachyos of 2026-10-04). Wine master (`66caeb46`): the hunks collide with Proton's fsync fallback, which sits on the same lines of `inproc_sync_destroy()` and `abandon_inproc_mutexes()` in Valve's tree and is absent upstream; the logic ports unchanged |
+| Upstream | Wine bug [60417](https://bugs.winehq.org/show_bug.cgi?id=60417) (wineserver), filed 2026-10-01, UNCONFIRMED, no reply as of 2026-10-28 |
 | Windows | abandons the mutex: `WAIT_ABANDONED` 0.1 to 0.7 ms after `TerminateThread()`, 5 of 5 runs of [`repro/mutex_abandon.c`](../repro/mutex_abandon.c) |
 | Full story | [ntsync mutexes are never abandoned once their handles are closed](../ntsync-mutex-abandonment.md) |
 
@@ -33,6 +33,12 @@ sync.c:420: Test failed: got 0x102
 
 ## The change
 
+Wine has done this for its server-side mutexes since Rémi Bernon's `934514db7c2`, "server: Keep owned mutex
+syncs alive until abandoned." (Wine 10.12): an owned mutex holds a reference to itself until it is released or
+abandoned, and the end of `test_mutex()` checks exactly that. An in-process mutex cannot do the same, because the
+server never sees an in-process acquisition or release; the moment its object is destroyed is the one point where
+the server can look.
+
 When the sync being destroyed is a mutex that `NTSYNC_IOC_MUTEX_READ` reports as owned, the server keeps its
 descriptor on a list of orphaned mutexes instead of closing it. `abandon_inproc_mutexes()` sends the kill to
 the orphans as well as to the live list, then reads each orphan and closes the ones that are no longer owned;
@@ -54,7 +60,10 @@ bug does not occur.
 | Patch 4 | `WAIT_ABANDONED` within 0.1 ms, 25 of 25 iterations |
 | Windows 11 25H2 | `WAIT_ABANDONED` 0.1 to 0.7 ms after the terminate, 5 of 5 |
 
-`kernel32:sync`: 2 failures on stock, 0 with the patch (2 runs), 0 on Windows with the same binary. The server's
+`kernel32:sync`: 2 failures on stock, 0 with the patch (2 runs), 0 on Windows with the same binary. Again with
+the current commits on Proton Experimental 20261014, with this patch alone (stock `ntdll`, a `wineserver` with only
+patch 4): `test_mutex` passes in 3 of 3 runs, `mutex_abandon close` 3 of 3, and only patch 6's wait-all test
+fails, which is the case patch 5 is for. The server's
 descriptor count was checked before and after 80 iterations of the probe's three modes and did not change, so
 the orphan list does not leak. The probe's `keep` mode (handle kept open) works everywhere and shows that the
 failure is confined to closed handles; its `waitall` mode still fails with this patch alone, and is what
@@ -63,7 +72,8 @@ failure is confined to closed handles; its `waitall` mode still fails with this 
 ## Upstream
 
 - 2026-10-01: Wine bug 60417 filed with the cause, both parts of the fix in prose, the Windows measurements and
-  the 32-bit findings; no reply as of 2026-10-09.
+  the 32-bit findings; no reply as of 2026-10-28. On 2026-10-17 its second part got its own report, bug
+  [60524](https://bugs.winehq.org/show_bug.cgi?id=60524) (patches 5 and 6).
 - 2026-10-01: the server diff of patches 4 and 5 and the probe posted on Proton
   [#8072](https://github.com/ValveSoftware/Proton/issues/8072#issuecomment-5943056744).
 - Written with an LLM; a reference for upstream, not a merge request.
