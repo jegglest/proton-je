@@ -63,8 +63,8 @@ this build does not set it for you.
 
 ## Testing
 
-[`repro/amd_probe.c`](repro/amd_probe.c) creates a D3D12 device and goes through the SDK's steps, plus the FSR 4
-interface queries from the [FSR 4 write-up](fsr4-rdna4.md). Run through the tool's `proton` script so that the
+[`repro/amd_probe.c`](repro/amd_probe.c) creates a D3D12 device and goes through the SDK's steps, plus the
+driver-extension queries that AMD's FSR 4 DLL makes. Run through the tool's `proton` script so that the
 prefix has vkd3d-proton's `d3d12.dll`; `repro/` has the commands. On the RX 9070 XT with Mesa 26.2.4 and the
 Proton-JE release built before this change (`proton-je-11.0-20261001-1`, Valve's `amdxc64`):
 

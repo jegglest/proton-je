@@ -2,8 +2,8 @@
 
 | | |
 |---|---|
-| Patches | commits 1 to 3 on [`jegglest/wine`, branch `je-11.0`](https://github.com/jegglest/wine/commits/je-11.0) (`dlls/ntdll/sync.c`, `dlls/ntdll/tests/sync.c`) |
-| Patch pages | [patch 1](patches/waitonaddress-use-after-return.md) (the use-after-return) and [patches 2 and 3](patches/waitonaddress-stale-alert.md) (the stale alert, with the test): the commit, the patch file, what each needs and how to check it |
+| Patches | patches 2 and 3 on [`jegglest/wine`, branch `je-11.0`](https://github.com/jegglest/wine/commits/je-11.0) (`dlls/ntdll/sync.c`, `dlls/ntdll/tests/sync.c`); patch 1 is in Valve's Wine since Proton Experimental 20261027b |
+| Patch pages | [patch 1](patches/waitonaddress-use-after-return.md) (the use-after-return, no longer carried) and [patches 2 and 3](patches/waitonaddress-stale-alert.md) (the stale alert, with the test): the commit, the patch file, what each needs and how to check it |
 | Upstream | Wine bug [60397](https://bugs.winehq.org/show_bug.cgi?id=60397) (ntdll), filed 2026-09-27, UNCONFIRMED |
 | Seen as | Warhammer 40,000: Space Marine 2 crashing mid-mission under Proton: Proton issue [#8072](https://github.com/ValveSoftware/Proton/issues/8072) |
 | Affects | every current Wine and Proton: the code in Proton Experimental's `ntdll` is identical to Wine master |
@@ -21,8 +21,9 @@ Windows consumes the racing wake instead and never leaves the alert behind. Spac
 reads with a single unlooped `SleepConditionVariableCS(INFINITE)`, so a spurious wakeup there lets a read
 callback write into a stack frame that no longer exists, and the game crashes.
 
-The patches make the waiter take the in-flight alert, as Windows does (patch 2), fix a use-after-return in the
-same code path (patch 1), and add a conformance test that fails on stock Wine and passes on Windows (patch 3).
+The patches make the waiter take the in-flight alert, as Windows does (patch 2), and add a conformance test that
+fails on stock Wine and passes on Windows (patch 3). Patch 1 fixed a use-after-return in the same code path;
+Wine fixed it the same way, and Proton Experimental's Wine has that fix since 20261027b.
 
 ## Symptom
 
@@ -117,7 +118,9 @@ first thread to wait". None of that describes a wake that ends the thread's next
 
 - **Patch 1**, `ntdll: Don't touch a RtlWaitOnAddress() waiter's entry after clearing its address.` The wakers
   read the thread id and unlink the entry first, and clear the address last, with release semantics
-  (`WritePointerRelease`); the waiter reads it with acquire semantics. The unlocked fast path stays.
+  (`WritePointerRelease`); the waiter reads it with acquire semantics. The unlocked fast path stays. Wine made
+  the same change in `81e52628`, which Proton Experimental's Wine has since 20261027b, so patch 1 is no longer
+  carried.
 - **Patch 2**, `ntdll: Take the alert of a RtlWaitOnAddress() wake that races a timeout.` A waiter that finds
   its entry dequeued after a timeout has been woken: it takes the alert with an untimed
   `NtWaitForAlertByThreadId(NULL, NULL)` and reports the wake (`STATUS_SUCCESS`). This is the Windows behaviour
@@ -232,8 +235,8 @@ without any access violation, a different problem.
   [`81e52628`](https://gitlab.winehq.org/wine/wine/-/commit/81e52628b25ac173d04796e8a9b9cda637d3e233)
   ([MR 12315](https://gitlab.winehq.org/wine/wine/-/merge_requests/12315), Wine 11.20), the same change as patch 1,
   without citing the bug. Valve's Wine has carried it in its bleeding-edge branch since 2026-10-15
-  ([`b2a60dcd145`](https://github.com/ValveSoftware/wine/commit/b2a60dcd1454b89e7f8e7fc1c6026f6bfcc3971e)).
-  Points 2 and 3, the stale alert itself, are fixed in neither as of 2026-10-24.
+  ([`b2a60dcd145`](https://github.com/ValveSoftware/wine/commit/b2a60dcd1454b89e7f8e7fc1c6026f6bfcc3971e)),
+  and Proton Experimental since 20261027b. Points 2 and 3, the stale alert itself, are fixed in neither as of 2026-10-24.
 - Wine's Developer FAQ says LLM-generated code is not accepted. The patches here were written with an LLM, so
   upstream has the bug reports, the measurements and the reproducers, and the patches are a reference for a fix
   that a Wine developer would write themselves.

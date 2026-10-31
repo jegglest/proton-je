@@ -2,14 +2,14 @@
 
 | | |
 |---|---|
-| Commit | the last commit on [`jegglest/wine`, branch `je-11.0`](https://github.com/jegglest/wine/commits/je-11.0), tag [`cs-unwait-ignore-errors`](https://github.com/jegglest/wine/commit/cs-unwait-ignore-errors) (`dlls/ntdll/sync.c`, seven lines): Paul Gofman's "ntdll: Ignore semaphore errors in RtlpUnWaitCriticalSection()" from Valve's Wine |
-| Kind | a fix from Valve's newer Wine, taken from its bleeding-edge branch before it reaches Proton Experimental; on for every game, nothing to switch |
+| Commit | Paul Gofman's "ntdll: Ignore semaphore errors in RtlpUnWaitCriticalSection()" in Valve's Wine, [`d5c4b850198`](https://github.com/ValveSoftware/wine/commit/d5c4b850198dad2e32dbf96d1fc5ad31029c8c70) (`dlls/ntdll/sync.c`, seven lines), in Proton Experimental since 20261027b; before that, the last commit on [`jegglest/wine`, branch `je-11.0`](https://github.com/jegglest/wine/commits/je-11.0), tag [`cs-unwait-ignore-errors`](https://github.com/jegglest/wine/commit/cs-unwait-ignore-errors), which stays on the last commit carried |
+| Kind | a fix from Valve's newer Wine, taken from its bleeding-edge branch before it reached Proton Experimental; on for every game, nothing to switch |
 | Seen as | Helldivers 2 closing through its crash reporter since the game update of 2026-10-21 (Steam build 25988413, `game.dll` 1.0.0.19374, `helldivers2.exe` 1.8.46539.0), and still after the next one (the crash reporter's build tag 19411) |
 | Affects | every Proton tried here: Proton Experimental 11.0-20261014 and `proton-je-11.0-20261014-1`; other players report the same crash in Proton issue [#7486](https://github.com/ValveSoftware/Proton/issues/7486), with Proton 11.0-2 too, less often |
-| Without this build | Proton Experimental's [bleeding-edge branch](https://github.com/ValveSoftware/Proton/wiki/Proton-Versions#proton-bleeding-edge) has carried the same commit since 2026-10-20 |
-| Releases | `proton-je-11.0-20261014-3` and later. `-2` carried a workaround of this repository's own instead ([why it was replaced](#what-release--2-carried-instead)) |
+| Without this build | Proton Experimental 20261027b and later; its [bleeding-edge branch](https://github.com/ValveSoftware/Proton/wiki/Proton-Versions#proton-bleeding-edge) had the same commit from 2026-10-20 |
+| Releases | `proton-je-11.0-20261014-3` and later: as the last commit of the Wine branch until the rebase onto Experimental 20261027b, from Valve's Wine since. `-2` carried a workaround of this repository's own instead ([why it was replaced](#what-release--2-carried-instead)) |
 | Windows | Windows raises the same exception when its leave really has to release a bad semaphore, but with the bytes the crash leaves behind its leave returns without trying: it encodes a critical section's state differently ([details](#what-windows-does)) |
-| Upstream | Valve's change (CodeWeavers bug 27891), in bleeding-edge, not yet in Proton Experimental; upstream Wine still raises there |
+| Upstream | Valve's change (CodeWeavers bug 27891), in Proton Experimental since 20261027b; upstream Wine still raises there |
 
 ## Summary
 
@@ -21,7 +21,7 @@ there now. Under Wine, what is there reads as a waiting thread and a semaphore h
 fails, and `ntdll` raised a non-continuable `STATUS_INVALID_HANDLE` for it; the game's crash reporter caught it and
 the game closed. Windows raises the same exception for a bad handle, but it encodes a critical section's state
 differently: it reads the same stale bytes as a lock whose waiter has already been woken, and its leave returns
-without touching the handle. Valve's fix, which this build carries, makes `RtlpUnWaitCriticalSection()` ignore a
+without touching the handle. Valve's fix, which this build has, makes `RtlpUnWaitCriticalSection()` ignore a
 failed release instead of raising, so the late leave returns and the game carries on, as it would on Windows.
 
 ## Symptom
@@ -123,8 +123,9 @@ this exception.
 
 ## The fix
 
-Commit 32 is Valve's, Paul Gofman's "ntdll: Ignore semaphore errors in RtlpUnWaitCriticalSection()" (CodeWeavers
-bug 27891), on Valve's bleeding-edge branch since 2026-10-20, taken here as it is. The leave still releases the
+The fix is Valve's, Paul Gofman's "ntdll: Ignore semaphore errors in RtlpUnWaitCriticalSection()" (CodeWeavers
+bug 27891), on Valve's bleeding-edge branch from 2026-10-20 and in Proton Experimental since 20261027b; this
+repository carried it as it is before that. The leave still releases the
 semaphore, or wakes the futex waiter, but no longer raises when the release fails:
 
 ```diff
@@ -159,8 +160,8 @@ Valve's change does not make Wine's critical sections behave like Windows' in ge
 every bad handle in the leave, including a real waiter's, where Windows raises. Doing exactly what Windows does
 would take Windows' encoding of `LockCount`, a much larger change to Wine's critical sections.
 
-Once Valve's change reaches Proton Experimental, the rebase onto that Experimental drops this commit, and the
-`-<n>` releases on it get the fix from Valve's Wine itself.
+Proton Experimental 20261027b has Valve's change, so the rebase onto it dropped this repository's copy, and the
+releases on it get the fix from Valve's Wine itself.
 
 ### What release -2 carried instead
 
@@ -242,15 +243,15 @@ is a different problem.
 
 ## Upstream status
 
-Valve has the fix in its bleeding-edge branch; it reaches Proton Experimental with Valve's next update of that
-branch. Upstream Wine still raises in `RtlpUnWaitCriticalSection()`, as Windows does. The difference worth a Wine
+Valve's fix is in Proton Experimental since 20261027b. Upstream Wine still raises in `RtlpUnWaitCriticalSection()`, as Windows does. The difference worth a Wine
 bug is the state encoding: the probe's `stale` mode returns on Windows and raises on Wine. The race itself is in the game's code,
 and Arrowhead's crash reporter has the reports (it uploads the first one and rate-limits the rest).
 
 ## References
 
-- Valve's Wine, bleeding-edge branch: "ntdll: Ignore semaphore errors in RtlpUnWaitCriticalSection()", Paul Gofman,
-  2026-10-20, CodeWeavers bug 27891; the last commit here, tag
+- Valve's Wine [`d5c4b850198`](https://github.com/ValveSoftware/wine/commit/d5c4b850198dad2e32dbf96d1fc5ad31029c8c70), "ntdll: Ignore semaphore errors in
+  RtlpUnWaitCriticalSection()", Paul Gofman, 2026-10-20, CodeWeavers bug 27891, in Proton Experimental since
+  20261027b; carried here until then, tag
   [`cs-unwait-ignore-errors`](https://github.com/jegglest/wine/commit/cs-unwait-ignore-errors).
 - Wine commit [`2745228b`](https://gitlab.winehq.org/wine/wine/-/commit/2745228b14d), "ntdll: Don't use debug info
   presence to detect critical section global status.": `LockSemaphore` as a futex word, a handle only above 1.
