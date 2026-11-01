@@ -48,10 +48,10 @@ git diff --name-only $old_wine $new_wine | grep -Fxf /tmp/ours.txt     # files V
 git rebase --onto $new_wine $old_wine je-11.0
 ```
 
-Verify before anything is pushed: `git rev-list --count $new_wine..je-11.0` is the old count (5, patches 2 to 6,
-since release `proton-je-11.0-20261027b-1`), and `git range-diff $old_wine..$old_head $new_wine..je-11.0` shows
+Verify before anything is pushed: `git rev-list --count $new_wine..je-11.0` is the old count (7, patches 2 to 8,
+since release `proton-je-11.0-20261027b-2`; 5 in `-1`), and `git range-diff $old_wine..$old_head $new_wine..je-11.0` shows
 every commit as `=`. Check that the patches still go on with plain `git am`, as the docs say:
-`git format-patch -o <dir> $new_wine..ntsync-mutex-in-use-after-close-test`, then `git am <dir>/*.patch` in a
+`git format-patch -o <dir> $new_wine..free-killed-thread-stacks-test`, then `git am <dir>/*.patch` in a
 worktree at `$new_wine`.
 
 A commit taken early from Valve's Wine drops out by itself once the new Experimental's Wine has it: the rebase
@@ -76,10 +76,11 @@ the one with the same subject in the rebased series:
 ```bash
 # Leave out the tags of commits the rebase dropped; add the tag of a commit taken early from Valve's Wine.
 for t in waitonaddress-stale-alert waitonaddress-stale-alert-test \
-         ntsync-mutex-owned-after-close ntsync-mutex-in-use-after-close ntsync-mutex-in-use-after-close-test; do
+         ntsync-mutex-owned-after-close ntsync-mutex-in-use-after-close ntsync-mutex-in-use-after-close-test \
+         free-killed-thread-stacks free-killed-thread-stacks-test; do
   git tag -f $t $(git log -1 --format=%H -F --grep="$(git log -1 --format=%s $t)" $new_wine..je-11.0)
 done
-git rev-list --count $new_wine..ntsync-mutex-in-use-after-close-test   # 5: the patches for upstream come first
+git rev-list --count $new_wine..free-killed-thread-stacks-test   # 7: the patches for upstream come first
 ```
 
 Keep the old head reachable, because the published release notes link every commit of it: one annotated tag
@@ -96,7 +97,8 @@ git push origin <the new release tags>
 git push --force-with-lease=je-11.0:$old_head origin je-11.0
 git push --force origin refs/tags/waitonaddress-stale-alert refs/tags/waitonaddress-stale-alert-test \
     refs/tags/ntsync-mutex-owned-after-close refs/tags/ntsync-mutex-in-use-after-close \
-    refs/tags/ntsync-mutex-in-use-after-close-test
+    refs/tags/ntsync-mutex-in-use-after-close-test refs/tags/free-killed-thread-stacks \
+    refs/tags/free-killed-thread-stacks-test
 ```
 
 ## 3. Rebase the Proton fork
@@ -118,7 +120,7 @@ and every `--continue` below, as `git -c core.commitGraph=false rebase …`.
 
 Every commit that moves the `wine` gitlink conflicts: since `proton-je-11.0-20261027b-1` only the first one,
 which points the submodule at the fork. Resolve it with
-`git update-index --cacheinfo 160000,$(git -C wine rev-parse ntsync-mutex-in-use-after-close-test),wine && GIT_EDITOR=true git rebase --continue`.
+`git update-index --cacheinfo 160000,$(git -C wine rev-parse free-killed-thread-stacks-test),wine && GIT_EDITOR=true git rebase --continue`.
 The commits that moved the gitlink later in the branch's history then replay without a conflict and without
 moving it. When a commit taking a fix early from Valve's Wine has its own gitlink commit, that one conflicts too
 and gets the new Wine head, `git -C wine rev-parse je-11.0`. A gitlink commit left empty by the resolution is
