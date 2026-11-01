@@ -7,9 +7,9 @@ notes; the raw output of the Windows runs is in [`results/`](results).
 
 ## Patches for upstream Wine
 
-Five commits in three self-contained pieces, found while tracking down the mid-mission crash of Warhammer
-40,000: Space Marine 2 under Proton, plus a fourth piece, patch 1, that Valve's Wine has since Proton
-Experimental 20261027b and this branch no longer carries. Each piece has a page under [`patches/`](patches) with the
+Seven commits in four self-contained pieces: three found while tracking down the mid-mission crash of Warhammer
+40,000: Space Marine 2 under Proton, and one found in Helldivers 2's memory growth (patches 7 and 8). Patch 1 is a
+fifth piece, one that Valve's Wine has since Proton Experimental 20261027b and this branch no longer carries. Each piece has a page under [`patches/`](patches) with the
 commit and its patch file, what it fixes, what it needs, where it applies, how to check it and where it stands
 upstream:
 
@@ -19,20 +19,23 @@ upstream:
 | 2 and 3 | [Take the alert of a wake that races a timeout](patches/waitonaddress-stale-alert.md), with its conformance test | [`waitonaddress-stale-alert`](https://github.com/jegglest/wine/commit/waitonaddress-stale-alert), [`waitonaddress-stale-alert-test`](https://github.com/jegglest/wine/commit/waitonaddress-stale-alert-test) | `dlls/ntdll/sync.c`, `dlls/ntdll/tests/sync.c` | Wine bug [60523](https://bugs.winehq.org/show_bug.cgi?id=60523), points 2 and 3 of 60397 |
 | 4 | [Keep an owned ntsync mutex until its owner releases it or dies](patches/ntsync-mutex-owned-after-close.md) | [`ntsync-mutex-owned-after-close`](https://github.com/jegglest/wine/commit/ntsync-mutex-owned-after-close) | `server/inproc_sync.c` | Wine bug [60417](https://bugs.winehq.org/show_bug.cgi?id=60417) |
 | 5 and 6 | [Keep an in-process mutex a client closed while still using it](patches/ntsync-mutex-in-use-after-close.md), with its conformance test | [`ntsync-mutex-in-use-after-close`](https://github.com/jegglest/wine/commit/ntsync-mutex-in-use-after-close), [`ntsync-mutex-in-use-after-close-test`](https://github.com/jegglest/wine/commit/ntsync-mutex-in-use-after-close-test) | `server/`, `dlls/ntdll/unix/sync.c` (two new server requests), `dlls/kernel32/tests/sync.c` | Wine bug [60524](https://bugs.winehq.org/show_bug.cgi?id=60524), the second part of 60417 |
+| 7 and 8 | [Free the stacks of a thread killed by another thread](patches/free-killed-thread-stacks.md), with its conformance test | [`free-killed-thread-stacks`](https://github.com/jegglest/wine/commit/free-killed-thread-stacks), [`free-killed-thread-stacks-test`](https://github.com/jegglest/wine/commit/free-killed-thread-stacks-test) | `dlls/ntdll/unix/thread.c`, `dlls/ntdll/unix/unix_private.h`, `dlls/kernel32/tests/thread.c` | not reported yet |
 
-Getting them as patches: the [compare view](https://github.com/jegglest/wine/compare/experimental_11.0...ntsync-mutex-in-use-after-close-test)
-shows exactly the five carried commits, and GitHub generates the patch files from the commits on request: `.patch`
+Getting them as patches: the [compare view](https://github.com/jegglest/wine/compare/experimental_11.0...free-killed-thread-stacks-test)
+shows exactly the seven carried commits, and GitHub generates the patch files from the commits on request: `.patch`
 appended to any commit link above gives that commit as a `git am` file, and
-[the compare link with `.patch` appended](https://github.com/jegglest/wine/compare/experimental_11.0...ntsync-mutex-in-use-after-close-test.patch)
-gives the whole series in one file (`git format-patch experimental_11.0..ntsync-mutex-in-use-after-close-test` in a
+[the compare link with `.patch` appended](https://github.com/jegglest/wine/compare/experimental_11.0...free-killed-thread-stacks-test.patch)
+gives the whole series in one file (`git format-patch experimental_11.0..free-killed-thread-stacks-test` in a
 clone does the same). No patch files are kept in this repository: the commits are the patches. The commit links
 are tags on the fork, named after the pages, that move to the rebased commits with every new Proton
 Experimental, except patch 1's, which stays on the last commit carried; the compare view's base is the fork's
 mirror of Valve's `experimental_11.0`. Patch 2 sits inside patch 1's change, which Valve's Wine and Wine master
 have in Wine's own form (`81e52628`), and is written on that; patch 5 depends on 4, and 6 tests what 5 fixes; 3
-and 4 stand alone. Checked on 2026-10-30: all five apply with `git am` to Valve's Wine `7b3ceaf8` of Experimental
-20261027b. On Wine master, checked 2026-10-28 on `66caeb46` with the series rebased the same way, 2, 3 and 6 apply
-with `git am`, while 4 and 5 need a hand port because Proton's fsync fallback sits on the lines they change.
+and 4 stand alone, and so does 7, which 8 tests. Checked on 2026-10-30: the first five apply with `git am` to
+Valve's Wine `7b3ceaf8` of Experimental 20261027b, and on 2026-11-01 7 and 8 too, with or without the others. On Wine master, checked 2026-10-28 on `66caeb46` with the series rebased the same way, 2, 3 and 6 apply
+with `git am`, while 4 and 5 need a hand port because Proton's fsync fallback sits on the lines they change. On master
+`2528aff2620` (Wine 11.21, checked 2026-11-01), 8 applies with `git am` and 7 needs a port: master keeps the
+per-thread data in a `struct thread_data` outside the TEB.
 Until Experimental 20261027b the series also carried patch 1, five commits through release
 `proton-je-11.0-20261014-3` and six from `-4`, and applied with `git am` to Valve's Wine `6d211aab`, `bc8d17c6`
 and `7fc704ef`.
@@ -44,6 +47,7 @@ results on Linux and on Windows, and the upstream history:
 |---|---|---|---|
 | [Stale thread alerts from `RtlWaitOnAddress()`](stale-thread-alert.md): a wake racing a timed-out wait leaves an alert that ends the thread's next wait early; Space Marine 2 crashes mid-mission because of it | 2 and 3 (`ntdll`); 1 is in Valve's Wine | Wine bugs [60397](https://bugs.winehq.org/show_bug.cgi?id=60397) and [60523](https://bugs.winehq.org/show_bug.cgi?id=60523), Proton issue [#8072](https://github.com/ValveSoftware/Proton/issues/8072) | UNCONFIRMED; a maintainer called the alert unavoidable, the Windows measurements say otherwise, and Wine fixed a sibling case in 2024 (merge request 3929, for Resident Evil); no reply since 2026-09-30 |
 | [ntsync mutexes are never abandoned once their handles are closed](ntsync-mutex-abandonment.md): a waiter blocks forever instead of getting `WAIT_ABANDONED`; the two `kernel32:sync` `test_mutex` failures | 4 to 6 (`wineserver`, `ntdll` unix side, a `kernel32` test) | Wine bugs [60417](https://bugs.winehq.org/show_bug.cgi?id=60417) and [60524](https://bugs.winehq.org/show_bug.cgi?id=60524) | UNCONFIRMED, no reply yet; the failing check is the one Wine added with its own server-side fix, `934514db7c2` |
+| [Killed threads keep their stacks](killed-thread-stacks.md): Wine never frees the TEB and stacks of a thread killed with `TerminateThread()`; Helldivers 2's anti-tamper code creates two suspended threads and kills them every 0.4 seconds, so the game grows by about 34 GiB of address space and 360 MiB of resident memory an hour | 7 and 8 (`ntdll` unix side, a `kernel32` test) | not reported yet | patches written 2026-11-01; Windows frees the stacks, measured on Windows 11 |
 
 ## No longer carried
 
@@ -76,7 +80,11 @@ releases. Windows: Windows 11 Enterprise Evaluation 25H2, build 26200.9457, in a
 same host, running the same executables. Wine's conformance tests (`ntdll:sync`, `kernel32:sync`) were built from
 the patched tree and run as the same binaries on both systems. The Helldivers 2 write-up reads the game's own
 crash dumps, from Proton Experimental 11.0-20261014 and `proton-je-11.0-20261014-1`; its probe of
-`LeaveCriticalSection()` ran on Linux 7.2.9 and on the Windows virtual machine above.
+`LeaveCriticalSection()` ran on Linux 7.2.9 and on the Windows virtual machine above. Patches 7 and 8 were
+measured on SteamOS 3.9 (Linux 7.2.7) on the same hardware, against release `proton-je-11.0-20261027b-1` and the
+GE-Proton11-11-based `proton-je-ge-11-11-1` with the patched `ntdll` and `wineserver` swapped in, and on the same
+Windows virtual machine; the game's threads were observed in its own crash dumps, through `/proc` and with
+`WINEDEBUG=+server`.
 
 ## Provenance
 

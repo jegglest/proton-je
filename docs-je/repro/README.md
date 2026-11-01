@@ -11,6 +11,7 @@ on Windows, so that Wine can be compared with it. The write-ups quote their resu
 | [`amd_probe.c`](amd_probe.c) | [AMD Anti-Lag 2](../amd-anti-lag-2.md) | Creates a D3D12 device and asks the `amdxc64` driver shim for what AMD's SDKs use: the Anti-Lag 2 interface (then the SDK's off, on and frame-marker calls), the `IAmdExtD3DFactory` interfaces FSR 4 queries for wave-matrix and FP8 support, and with `--ffx` the FSR 3.1 to FSR 4 provider upgrade itself. Prints one line per step and writes the same to `amd_probe_out.txt`. |
 | [`cs_leave_bad_semaphore.c`](cs_leave_bad_semaphore.c) | [Helldivers 2 renderer race](../helldivers2-renderer-race.md) | What `LeaveCriticalSection()` does when it has a waiter to wake and `LockSemaphore` is not a valid handle, three ways, each in a process of its own: `waiter` (a second thread blocked in `EnterCriticalSection()`, then `LockSemaphore` set to `0xdeadbeef`), `stale` (the fields hold pointers between 4 and 8 GB, as a reused stack frame does under Wine) and `stale-high` (pointers where Windows puts them). Prints the fields before and after and whether the leave returned or raised. |
 | [`inproc_cache_probe.c`](inproc_cache_probe.c) | [ntsync mutex abandonment](../ntsync-mutex-abandonment.md), patch 5 | Creates 5000 events (or the count given) and waits on each one once, so that `ntdll`'s in-process sync cache has to map a second block of entries. Checks the page-size slip of the first version of patch 5, which aborted releases `-1` and `-2` of this repository once a game had about 3300 handles open. Prints the highest handle value and one line per 1000 waits. |
+| [`killed_thread_stacks.c`](killed_thread_stacks.c) | [Killed threads keep their stacks](../killed-thread-stacks.md) | Counts the private allocations, committed bytes and working set that a batch of threads leaves in the address space: threads killed with `TerminateThread()` while they sleep, threads created suspended with no start address and killed without ever running (Helldivers 2's pattern, every other one hidden from debuggers), or threads that return. Runs one more thread before its second count, since patch 7 frees killed threads when the next thread starts or exits. |
 
 ## Building
 
@@ -23,6 +24,7 @@ x86_64-w64-mingw32-gcc -O2 -D__USE_MINGW_ANSI_STDIO=1 -o mutex_abandon.exe mutex
 x86_64-w64-mingw32-gcc -O1 -Wno-format -o amd_probe.exe amd_probe.c
 x86_64-w64-mingw32-gcc -O2 -o inproc_cache_probe.exe inproc_cache_probe.c
 x86_64-w64-mingw32-gcc -O2 -o cs_leave_bad_semaphore.exe cs_leave_bad_semaphore.c
+x86_64-w64-mingw32-gcc -O2 -o killed_thread_stacks.exe killed_thread_stacks.c -lpsapi
 ```
 
 The same commands with `i686-w64-mingw32-gcc` give 32-bit builds, which matter for the mutex issue: under Proton a
@@ -36,6 +38,7 @@ stale_wake.exe [seconds, default 30] [workers, default 8] [timed|poll|both, defa
 mutex_abandon.exe [close|keep|waitall, default close] [iterations, default 1]
 inproc_cache_probe.exe [events, default 5000]
 cs_leave_bad_semaphore.exe [waiter|stale|stale-high, default all three]
+killed_thread_stacks.exe [kill|suspended|exit|all, default all] [threads, default 500]
 ```
 
 On Linux, run them with the Wine of the Proton build under test, for example from an extracted release:

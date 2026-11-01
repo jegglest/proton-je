@@ -2,7 +2,7 @@ Proton-JE
 =========
 
 Valve's [Proton Experimental](https://github.com/ValveSoftware/Proton/tree/experimental_11.0), built the way
-Valve builds Proton, with the patches I am trying to get into upstream Wine on top, five commits for two Wine
+Valve builds Proton, with the patches I am trying to get into upstream Wine on top, seven commits for three Wine
 bugs, so that other people can test the fixes before they land. A fix from Valve's own newer Wine that a game
 needs before Proton Experimental has it is carried too, until Experimental catches up; none is needed at the
 moment. Nothing else is changed: no wine-staging, no other custom patches.
@@ -10,7 +10,7 @@ moment. Nothing else is changed: no wine-staging, no other custom patches.
 | | |
 |---|---|
 | Base | Proton `experimental_11.0` commit [`871b0bf1`](https://github.com/ValveSoftware/Proton/commit/871b0bf1402dd9632a16495a2def7036161e771c) (Steam's `experimental-11.0-20261027b`) with Wine [`7b3ceaf8`](https://github.com/ValveSoftware/wine/commit/7b3ceaf8644bb5d57140903e12897efac69be16a) |
-| Patches | the commits on branch [`je-11.0` of `jegglest/wine`](https://github.com/jegglest/wine/commits/je-11.0): Valve's Wine for this Experimental, then my synchronization fixes meant for upstream Wine, five commits (patches 2 to 6; patch 1 is in Valve's Wine now); the `wine/` submodule points at it |
+| Patches | the commits on branch [`je-11.0` of `jegglest/wine`](https://github.com/jegglest/wine/commits/je-11.0): Valve's Wine for this Experimental, then my fixes meant for upstream Wine, seven commits (patches 2 to 8; patch 1 is in Valve's Wine now); the `wine/` submodule points at it |
 | Builds | [Releases](https://github.com/jegglest/proton-je/releases): `proton-je-<Proton version>-<n>.tar.xz`, built by [GitHub Actions](.github/workflows/build.yml) from the tagged commit. Use `proton-je-11.0-20261001-3` or later: `-1` and `-2` abort any game once it has about 3300 handles open at once ([why](docs-je/patches/ntsync-mutex-in-use-after-close.md#the-change)) |
 | Write-ups | [`docs-je/`](docs-je): one page per patch for upstream ([`docs-je/patches/`](docs-je/patches)) with the commit, the patch file and how to check it; the full investigation of each issue, with the test results on Linux and on Windows |
 | Discussion | Proton issue [#8072](https://github.com/ValveSoftware/Proton/issues/8072), Wine bugs [60397](https://bugs.winehq.org/show_bug.cgi?id=60397), [60417](https://bugs.winehq.org/show_bug.cgi?id=60417), [60523](https://bugs.winehq.org/show_bug.cgi?id=60523) and [60524](https://bugs.winehq.org/show_bug.cgi?id=60524) |
@@ -23,11 +23,11 @@ now ([below](#now-in-valves-wine)), and Proton-EM's FSR 4 work is no longer carr
 ([below](#no-longer-carried-fsr-4-on-rdna4)). [`docs-je/`](docs-je) has the full write-up of each issue, with the
 test programs and the Windows comparison.
 
-### For upstream Wine: patches 2 to 6
+### For upstream Wine: patches 2 to 8
 
 Fixes for two bugs in Wine's synchronization primitives, found while tracking down the mid-mission crash of
-Warhammer 40,000: Space Marine 2 under Proton ([#8072](https://github.com/ValveSoftware/Proton/issues/8072)).
-They are three self-contained pieces, and each has its own page under [`docs-je/patches/`](docs-je/patches) with
+Warhammer 40,000: Space Marine 2 under Proton ([#8072](https://github.com/ValveSoftware/Proton/issues/8072)), and
+for one in how Wine ends a killed thread, found in Helldivers 2's memory use. They are four self-contained pieces, and each has its own page under [`docs-je/patches/`](docs-je/patches) with
 the commit, the patch file, what it fixes, what it needs, where it applies, how to check it and where it stands
 upstream. A fourth, patch 1, is in Valve's Wine now ([below](#now-in-valves-wine)) and keeps its page:
 
@@ -36,11 +36,12 @@ upstream. A fourth, patch 1, is in Valve's Wine now ([below](#now-in-valves-wine
 | [2 and 3](docs-je/patches/waitonaddress-stale-alert.md) | a `RtlWaitOnAddress()` waiter that times out just as a waker dequeues it takes the alert that is on its way, as Windows does, instead of leaving it to end the thread's next wait early; plus a conformance test. This is the Space Marine 2 crash | Wine bug [60523](https://bugs.winehq.org/show_bug.cgi?id=60523), points 2 and 3 of 60397 |
 | [4](docs-je/patches/ntsync-mutex-owned-after-close.md) | `wineserver` keeps an ntsync mutex that is owned when its last handle is closed, so that its owner's death still abandons it; the two `kernel32:sync` `test_mutex` failures | Wine bug [60417](https://bugs.winehq.org/show_bug.cgi?id=60417) |
 | [5 and 6](docs-je/patches/ntsync-mutex-in-use-after-close.md) | the remaining case, a mutex closed while a wait-all of the same process is still pending on it, through two new server requests that only that case sends; plus a conformance test | Wine bug [60524](https://bugs.winehq.org/show_bug.cgi?id=60524), the second part of 60417 |
+| [7 and 8](docs-je/patches/free-killed-thread-stacks.md) | a thread killed with `TerminateThread()` gets its TEB and stacks freed when the next thread starts or exits, as Windows frees a killed thread's stack, instead of keeping them for as long as the process runs; plus a conformance test. Helldivers 2 kills about five threads a second | not reported yet |
 
-All five apply with `git am` to Valve's Wine for this Experimental. Wine master has patch 1's change since
-`81e52628` (2026-10-14, Wine 11.20): 2, 3 and 6 apply there with `git am` too, 4 and 5 need a hand port (checked
-2026-10-28, details on the pages). The
-[compare view](https://github.com/jegglest/wine/compare/experimental_11.0...ntsync-mutex-in-use-after-close-test) shows exactly these commits;
+All seven apply with `git am` to Valve's Wine for this Experimental. Wine master has patch 1's change since
+`81e52628` (2026-10-14, Wine 11.20): 2, 3, 6 and 8 apply there with `git am` too, 4, 5 and 7 need a hand port
+(checked 2026-10-28 and 2026-11-01, details on the pages). The
+[compare view](https://github.com/jegglest/wine/compare/experimental_11.0...free-killed-thread-stacks-test) shows exactly these commits;
 `.patch` appended to it, or to any commit link, makes GitHub generate the series or that one commit as a
 `git am` file. No patch files are kept here: the commits are the patches.
 
@@ -66,12 +67,22 @@ thread of the same process is still using it, with two new server requests that 
 case; patch 6 is its conformance test. The `kernel32:sync` check that `934514db7c2` added has failed under ntsync
 since in-process synchronization arrived in Wine 10.16; patch 4 or patch 5 alone makes it pass.
 
+**Killed threads keep their stacks** (patches 7 and 8, [write-up](docs-je/killed-thread-stacks.md), not reported
+upstream yet). A thread that exits normally gets its TEB, its stack and its kernel stack freed by the next thread
+that exits, but a thread killed with `TerminateThread()` leaves through `abort_thread()`, which frees nothing, so
+they stay mapped for as long as the process runs. Windows frees a killed thread's stack. Helldivers 2's
+anti-tamper code creates two suspended threads and kills them every 0.4 seconds, which under Wine adds about
+34 GiB of address space and 360 MiB of resident memory an hour. Patch 7 has a killed thread queue its TEB and the
+next thread that starts or exits free it; patch 8 is a conformance test that fails on stock Wine and passes on
+Windows 11.
+
 Results so far: on my machine the stock build crashed regularly in Space Marine 2; with the patched `ntdll` and
 `wineserver` it has not crashed since 2026-09-26 ([details](docs-je/stale-thread-alert.md#in-the-game)). Several
 people in that thread report the same with Jpokul's prototype build, which carries the same patches. Wine's
-`ntdll:sync` and `kernel32:sync` test suites pass with the patches, and so do both new tests on Windows 11.
+`ntdll:sync`, `kernel32:sync` and `kernel32:thread` test suites pass with the patches, and so do the three new
+tests on Windows 11. Helldivers 2 has yet to run on a build with patches 7 and 8.
 
-The synchronization patches were written with the help of an LLM (Claude), which Wine's contribution policy
+These patches were written with the help of an LLM (Claude), which Wine's contribution policy
 excludes from merge requests, so upstream has them as bug reports with the analysis, and the patches live here
 and on the Proton issue as a reference.
 

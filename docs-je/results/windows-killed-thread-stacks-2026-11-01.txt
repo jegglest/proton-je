@@ -1,0 +1,42 @@
+Windows 11 Enterprise Evaluation 25H2, build 26200.9457, QEMU/KVM virtual machine, 2026-11-01.
+Programs built from Proton-JE's je-11.0 Wine branch with patches 7 and 8 (kernel32_test.exe) and docs-je/repro/killed_thread_stacks.c.
+
+== killed_thread_stacks.exe all 500 / killed_thread_stacks32.exe all 500
+64-bit 
+kill      500 threads: private allocations +1 (+0.00 per thread), committed +0.7 MiB (+1.4 KiB per thread), working set +0.7 MiB
+suspended 500 threads: private allocations +0 (+0.00 per thread), committed +0.0 MiB (+0.0 KiB per thread), working set +0.0 MiB
+exit      500 threads: private allocations +0 (+0.00 per thread), committed +0.0 MiB (+0.0 KiB per thread), working set +0.0 MiB
+32-bit 
+kill      500 threads: private allocations +2 (+0.00 per thread), committed +0.5 MiB (+1.1 KiB per thread), working set +0.6 MiB
+suspended 500 threads: private allocations +0 (+0.00 per thread), committed +0.0 MiB (+0.0 KiB per thread), working set +0.0 MiB
+exit      500 threads: private allocations +0 (+0.00 per thread), committed +0.0 MiB (+0.0 KiB per thread), working set +0.0 MiB
+
+== kernel32_test.exe thread (64-bit): failures and summary
+2c08:thread: 1051 tests executed (0 marked as todo, 0 as flaky, 0 failures), 0 skipped.
+exit 0 
+
+== kernel32_test32.exe thread (32-bit): failures and summary
+(all 21 failures are in the 32-bit-only test_GetThreadContext() and test_GetThreadSelectorEntry(), lines 1471-1544; none in test_TerminateThread_stack())
+thread.c:1471: Test failed: expected HIWORD(SegDs) == 0, got 11468843
+thread.c:1472: Test failed: expected HIWORD(SegFs) == 0, got 10420307
+thread.c:1477: Test failed: GetThreadSelectorEntry(SegDs) error 31
+thread.c:1479: Test failed: GetThreadSelectorEntry(SegDs) error 31
+thread.c:1496: Test failed: GetThreadSelectorEntry(SegFs) error 31
+thread.c:1502: Test failed: expected 007DB000, got 11111111
+thread.c:1503: Test failed: expected 0x0fff or 0x4000, got 0x11111
+thread.c:1504: Test failed: expected 0x12, got 0x10
+thread.c:1505: Test failed: expected 3, got 0
+thread.c:1506: Test failed: expected 1, got 0
+thread.c:1507: Test failed: expected 0, got 1
+thread.c:1509: Test failed: expected 1, got 0
+thread.c:1531: Test failed: GetThreadSelectorEntry(SegDs) error 31
+thread.c:1536: Test failed: got base 11111111
+thread.c:1537: Test failed: got limit 0x11111
+thread.c:1538: Test failed: expected 0x12, got 0x10
+thread.c:1539: Test failed: expected 3, got 0
+thread.c:1540: Test failed: expected 1, got 0
+thread.c:1541: Test failed: expected 0, got 1
+thread.c:1543: Test failed: expected 1, got 0
+thread.c:1544: Test failed: expected 1, got 0
+27ac:thread: 1106 tests executed (0 marked as todo, 0 as flaky, 21 failures), 0 skipped.
+exit 21 
