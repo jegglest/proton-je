@@ -1,9 +1,13 @@
 ---
 name: rebase-release
-description: Rebase Proton-JE onto the newest Proton Experimental, tag the release, build it on GitHub Actions, then download, verify and install it into Steam. Use when a new Proton Experimental is out, or when asked to update, rebase, re-tag, rebuild or install a new Proton-JE release.
+description: Proton-JE is no longer updated (since 2026-11-01); only when the user asks to revive it. Rebase Proton-JE onto the newest Proton Experimental, tag the release, build it on GitHub Actions, then download, verify and install it into Steam. Use when a new Proton Experimental is out, or when asked to update, rebase, re-tag, rebuild or install a new Proton-JE release.
 ---
 
 # A new Proton-JE release on a new Proton Experimental
+
+> Proton-JE is no longer updated (decided 2026-11-01): the last release is `proton-je-11.0-20261027b-2`, and the
+> patches carry on in Proton-JE-GE (`~/repos/proton-je-ge`, skill `rebase-ge`). Run this only when the user asks
+> to revive Proton-JE.
 
 Layout: `~/repos/proton-je` is the Proton fork (branch `je-11.0`; remote `origin` = jegglest/proton-je over SSH,
 `valve` = ValveSoftware/Proton). `wine/` is the submodule: a full clone of jegglest/wine (branch `je-11.0`; remote

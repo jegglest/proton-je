@@ -1,9 +1,13 @@
 ---
 name: mark-latest
-description: Make a Proton-JE release that has been tried the one to use. Confirm it is GitHub's latest release, demote the earlier releases to pre-release so ProtonPlus offers only the newest, move the "Proton-JE Latest" tool in Steam to it with install-latest.sh, and point Steam's global default at that tool once, when Steam is closed. Use when asked to make a release the latest, promote it, mark older releases as pre-release, retire a release, update Proton-JE Latest, or set Steam's default Proton-JE.
+description: Proton-JE is no longer updated (since 2026-11-01); only when the user asks to revive it. Make a Proton-JE release that has been tried the one to use. Confirm it is GitHub's latest release, demote the earlier releases to pre-release so ProtonPlus offers only the newest, move the "Proton-JE Latest" tool in Steam to it with install-latest.sh, and point Steam's global default at that tool once, when Steam is closed. Use when asked to make a release the latest, promote it, mark older releases as pre-release, retire a release, update Proton-JE Latest, or set Steam's default Proton-JE.
 ---
 
 # Mark a Proton-JE release as the latest
+
+> Proton-JE is no longer updated (decided 2026-11-01): the last release is `proton-je-11.0-20261027b-2`, and the
+> patches carry on in Proton-JE-GE (`~/repos/proton-je-ge`, skill `rebase-ge`). Run this only when the user asks
+> to revive Proton-JE.
 
 Argument: the release tag, default the newest one (`gh release list --repo jegglest/proton-je --limit 1`).
 Building and installing a release is `/rebase-release`; this skill is the public "use this one" signal, given

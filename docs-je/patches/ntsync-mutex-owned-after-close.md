@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Commit | [`ntsync-mutex-owned-after-close`](https://github.com/jegglest/wine/commit/ntsync-mutex-owned-after-close) `server: Keep an owned ntsync mutex until its owner releases it or dies.` ([patch file](https://github.com/jegglest/wine/commit/ntsync-mutex-owned-after-close.patch)); the tag moves to the rebased commit with every new Proton Experimental |
+| Commit | [`ntsync-mutex-owned-after-close`](https://github.com/jegglest/wine/commit/ntsync-mutex-owned-after-close) `server: Keep an owned ntsync mutex until its owner releases it or dies.` ([patch file](https://github.com/jegglest/wine/commit/ntsync-mutex-owned-after-close.patch)); the tag stays on the commit of the last release, on Experimental 20261027b |
 | Changes | `server/inproc_sync.c`, 49 lines added and 1 removed: a list of orphaned mutexes, used by `inproc_sync_destroy()` and `abandon_inproc_mutexes()` |
 | Fixes | with `/dev/ntsync`, a thread that dies while owning a mutex whose handles its process has already closed never abandons it, and a thread waiting on the mutex blocks forever instead of getting `WAIT_ABANDONED`. The two `kernel32:sync` `test_mutex` failures under ntsync: the check is Wine's own, added with `934514db7c2` (Wine 10.12) when Wine made its server-side mutexes do this, and it has failed with ntsync since in-process synchronization arrived in Wine 10.16 (`7bb835b3482`) |
 | Needs | nothing. `wineserver` only, no protocol change: replacing `wineserver` alone is enough |

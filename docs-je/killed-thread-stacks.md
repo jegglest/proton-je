@@ -6,7 +6,8 @@
 | Cause | Wine never frees the TEB and the stacks of a thread killed with `TerminateThread()`; the game's anti-tamper code creates two suspended threads and kills them every 0.4 seconds |
 | Windows | frees a killed thread's stack, as documented and as measured on Windows 11 |
 | Fix | [patches 7 and 8](patches/free-killed-thread-stacks.md): the next thread that starts or exits frees a killed thread's TEB and stacks; plus a conformance test |
-| Upstream | not reported yet |
+| In the game | with the patches the stacks no longer pile up ([below](#in-the-game)) |
+| Upstream | not reported yet; proposed to GE-Proton as [#917](https://github.com/GloriousEggroll/proton-ge-custom/pull/917) |
 | Found | 2026-11-01, in the game's own crash dumps |
 
 ## What the game does
@@ -86,7 +87,15 @@ waits and one killed before it ever ran must not leave their stacks allocated. I
 
 ## In the game
 
-Pending: the patched build has not run the game yet.
+Checked with Proton-JE-GE's release `proton-je-ge-11-11-2`, which carries patches 7 and 8 as patch files on
+GE-Proton11-11, the same way as above: `/proc/<pid>/maps` and `/proc/<pid>/task` of the running game. The game
+still creates and kills its threads, which a 30-second sample at 5 ms still catches as threads that come and go
+between two samples, but their stacks no longer pile up. In those 30 seconds the
+stack-shaped mappings grew by 1 user stack and 3 kernel stacks, where without the patches they grew by 137 and 144.
+Sampled every 30 seconds for as long as the game ran, they stayed between 39 and 48 user stacks and 160 and 169
+kernel stacks, for 137 to 145 live threads. The number of mappings went up and down between about 10,200 and 11,400
+instead of growing by about 12 a second, and the resident memory rose from 3.5 to 5.3 GiB while the game loaded and
+then stayed level.
 
 ## How it was found
 

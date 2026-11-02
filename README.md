@@ -1,6 +1,15 @@
 Proton-JE
 =========
 
+> [!Important]
+> Proton-JE is no longer updated. The last release is `proton-je-11.0-20261027b-2`, on Proton Experimental
+> 20261027b. The patches carry on in [Proton-JE-GE](https://github.com/proton-je/proton-je-ge), GE-Proton with the
+> same Wine patches, and are proposed to GE-Proton itself as pull requests
+> ([#912](https://github.com/GloriousEggroll/proton-ge-custom/pull/912),
+> [#913](https://github.com/GloriousEggroll/proton-ge-custom/pull/913),
+> [#917](https://github.com/GloriousEggroll/proton-ge-custom/pull/917)). The write-ups in [`docs-je/`](docs-je)
+> stay here, and Proton-JE-GE links to them.
+
 Valve's [Proton Experimental](https://github.com/ValveSoftware/Proton/tree/experimental_11.0), built the way
 Valve builds Proton, with the patches I am trying to get into upstream Wine on top, seven commits for three Wine
 bugs, so that other people can test the fixes before they land. A fix from Valve's own newer Wine that a game
@@ -11,7 +20,7 @@ moment. Nothing else is changed: no wine-staging, no other custom patches.
 |---|---|
 | Base | Proton `experimental_11.0` commit [`871b0bf1`](https://github.com/ValveSoftware/Proton/commit/871b0bf1402dd9632a16495a2def7036161e771c) (Steam's `experimental-11.0-20261027b`) with Wine [`7b3ceaf8`](https://github.com/ValveSoftware/wine/commit/7b3ceaf8644bb5d57140903e12897efac69be16a) |
 | Patches | the commits on branch [`je-11.0` of `jegglest/wine`](https://github.com/jegglest/wine/commits/je-11.0): Valve's Wine for this Experimental, then my fixes meant for upstream Wine, seven commits (patches 2 to 8; patch 1 is in Valve's Wine now); the `wine/` submodule points at it |
-| Builds | [Releases](https://github.com/jegglest/proton-je/releases): `proton-je-<Proton version>-<n>.tar.xz`, built by [GitHub Actions](.github/workflows/build.yml) from the tagged commit. Use `proton-je-11.0-20261001-3` or later: `-1` and `-2` abort any game once it has about 3300 handles open at once ([why](docs-je/patches/ntsync-mutex-in-use-after-close.md#the-change)) |
+| Builds | [Releases](https://github.com/jegglest/proton-je/releases): `proton-je-<Proton version>-<n>.tar.xz`, built by [GitHub Actions](.github/workflows/build.yml) from the tagged commit; the last one is `proton-je-11.0-20261027b-2`. Use `proton-je-11.0-20261001-3` or later: `-1` and `-2` abort any game once it has about 3300 handles open at once ([why](docs-je/patches/ntsync-mutex-in-use-after-close.md#the-change)) |
 | Write-ups | [`docs-je/`](docs-je): one page per patch for upstream ([`docs-je/patches/`](docs-je/patches)) with the commit, the patch file and how to check it; the full investigation of each issue, with the test results on Linux and on Windows |
 | Discussion | Proton issue [#8072](https://github.com/ValveSoftware/Proton/issues/8072), Wine bugs [60397](https://bugs.winehq.org/show_bug.cgi?id=60397), [60417](https://bugs.winehq.org/show_bug.cgi?id=60417), [60523](https://bugs.winehq.org/show_bug.cgi?id=60523) and [60524](https://bugs.winehq.org/show_bug.cgi?id=60524) |
 
@@ -80,7 +89,8 @@ Results so far: on my machine the stock build crashed regularly in Space Marine 
 `wineserver` it has not crashed since 2026-09-26 ([details](docs-je/stale-thread-alert.md#in-the-game)). Several
 people in that thread report the same with Jpokul's prototype build, which carries the same patches. Wine's
 `ntdll:sync`, `kernel32:sync` and `kernel32:thread` test suites pass with the patches, and so do the three new
-tests on Windows 11. Helldivers 2 has yet to run on a build with patches 7 and 8.
+tests on Windows 11. With patches 7 and 8, in Proton-JE-GE's release `proton-je-ge-11-11-2`, Helldivers 2's
+thread stacks no longer pile up ([details](docs-je/killed-thread-stacks.md#in-the-game)).
 
 These patches were written with the help of an LLM (Claude), which Wine's contribution policy
 excludes from merge requests, so upstream has them as bug reports with the analysis, and the patches live here
@@ -167,8 +177,7 @@ sha512sum -c proton-je-<version>.sha512sum
 tar -xf proton-je-<version>.tar.xz -C ~/.steam/root/compatibilitytools.d/
 ```
 
-Restart Steam, then pick `proton-je-<version>` under the game's Properties > Compatibility. Tools such as
-ProtonPlus or ProtonUp-Qt can do the same once they list this repository.
+Restart Steam, then pick `proton-je-<version>` under the game's Properties > Compatibility.
 
 Building it yourself
 --------------------
@@ -190,9 +199,9 @@ How this repository is laid out
 
 `je-11.0` is `experimental_11.0` plus a few commits: the `wine` submodule pointed at the `je-11.0` branch of
 [`jegglest/wine`](https://github.com/jegglest/wine) (the Wine commit this Experimental uses plus the patches as
-commits), the write-ups in `docs-je/`, the build workflow and this README. When Valve updates Experimental, the
-Wine branch is rebased onto the Wine commit the new head uses and this branch onto the new head, and both are
-force-pushed; every release stays reachable through its tag, which also pins the Wine commit it was built from.
+commits), the write-ups in `docs-je/`, the build workflow and this README. While Proton-JE was updated, each new
+Experimental had the Wine branch rebased onto the Wine commit the new head used and this branch onto the new head,
+and both force-pushed; every release stays reachable through its tag, which also pins the Wine commit it was built from.
 Releases are tags named `proton-je-<Proton version>-<n>`, where `n` counts the builds on the same base.
 
 Upstream's README follows.

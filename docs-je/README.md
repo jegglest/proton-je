@@ -27,8 +27,8 @@ appended to any commit link above gives that commit as a `git am` file, and
 [the compare link with `.patch` appended](https://github.com/jegglest/wine/compare/experimental_11.0...free-killed-thread-stacks-test.patch)
 gives the whole series in one file (`git format-patch experimental_11.0..free-killed-thread-stacks-test` in a
 clone does the same). No patch files are kept in this repository: the commits are the patches. The commit links
-are tags on the fork, named after the pages, that move to the rebased commits with every new Proton
-Experimental, except patch 1's, which stays on the last commit carried; the compare view's base is the fork's
+are tags on the fork, named after the pages, on the commits of the last release (Proton-JE is no longer updated;
+the patches carry on in [Proton-JE-GE](https://github.com/proton-je/proton-je-ge)), patch 1's on the last commit carried; the compare view's base is the fork's
 mirror of Valve's `experimental_11.0`. Patch 2 sits inside patch 1's change, which Valve's Wine and Wine master
 have in Wine's own form (`81e52628`), and is written on that; patch 5 depends on 4, and 6 tests what 5 fixes; 3
 and 4 stand alone, and so does 7, which 8 tests. Checked on 2026-10-30: the first five apply with `git am` to

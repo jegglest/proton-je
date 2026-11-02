@@ -2,13 +2,14 @@
 
 | | |
 |---|---|
-| Commits | [`free-killed-thread-stacks`](https://github.com/jegglest/wine/commit/free-killed-thread-stacks) `ntdll: Free the TEB and stacks of a thread killed by another thread.` ([patch file](https://github.com/jegglest/wine/commit/free-killed-thread-stacks.patch)); [`free-killed-thread-stacks-test`](https://github.com/jegglest/wine/commit/free-killed-thread-stacks-test) `kernel32/tests: Test that the stack of a killed thread is freed.` ([patch file](https://github.com/jegglest/wine/commit/free-killed-thread-stacks-test.patch)); the tags move to the rebased commits with every new Proton Experimental |
+| Commits | [`free-killed-thread-stacks`](https://github.com/jegglest/wine/commit/free-killed-thread-stacks) `ntdll: Free the TEB and stacks of a thread killed by another thread.` ([patch file](https://github.com/jegglest/wine/commit/free-killed-thread-stacks.patch)); [`free-killed-thread-stacks-test`](https://github.com/jegglest/wine/commit/free-killed-thread-stacks-test) `kernel32/tests: Test that the stack of a killed thread is freed.` ([patch file](https://github.com/jegglest/wine/commit/free-killed-thread-stacks-test.patch)); the tags stay on the commits of the last release, on Experimental 20261027b |
 | Changes | patch 7: `dlls/ntdll/unix/thread.c` and `dlls/ntdll/unix/unix_private.h`, 38 lines added, none removed. Patch 8: `dlls/kernel32/tests/thread.c`, 100 lines added: `test_TerminateThread_stack()` in `kernel32:thread` |
 | Fixes | a thread killed with `TerminateThread()` keeps its TEB, its stack and its kernel stack, about 2 MiB of address space and whatever pages it touched, for as long as the process runs |
 | Needs | nothing; independent of patches 2 to 6 |
 | Applies to | Valve's Wine [`7b3ceaf8`](https://github.com/ValveSoftware/wine/commit/7b3ceaf8644bb5d57140903e12897efac69be16a) of Experimental 20261027b, both commits with `git am`, with or without patches 2 to 6 (checked 2026-11-01). GE-Proton11-11 (Valve's `c53678ab22a` with GE's patches), both, as [Proton-JE-GE](https://github.com/proton-je/proton-je-ge)'s patch files; only the context of patch 7's `unix_private.h` hunk differs. Wine master (`2528aff2620`, Wine 11.21): patch 8 with `git am`; patch 7 needs a port, since master keeps the per-thread data in a `struct thread_data` outside the TEB and frees it with `virtual_free_thread_data()`; the same change applies there |
-| Upstream | not reported yet |
+| Upstream | not reported yet; proposed to GE-Proton as [#917](https://github.com/GloriousEggroll/proton-ge-custom/pull/917) |
 | Windows | frees them: "The system frees the thread's initial stack" ([`TerminateThread()`](https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-terminatethread); only Windows XP and Server 2003 leaked it). Measured on Windows 11 25H2: 500 killed threads leave 1 or 2 allocations behind, 64- and 32-bit; patch 8 passes there, 64- and 32-bit |
+| In the game | Helldivers 2's thread stacks no longer pile up, with Proton-JE-GE's `proton-je-ge-11-11-2` ([details](../killed-thread-stacks.md#in-the-game)) |
 | Full story | [Killed threads keep their stacks](../killed-thread-stacks.md) |
 
 ## The bug
